@@ -1,13 +1,12 @@
 """Vercel Flask entrypoint."""
 
-import os
 import sys
+import os
 
+# Add backend directory to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
 
-ROOT_DIR = os.path.dirname(__file__)
-BACKEND_DIR = os.path.join(ROOT_DIR, "backend")
-
-if BACKEND_DIR not in sys.path:
-    sys.path.insert(0, BACKEND_DIR)
-
-from run import app
+try:
+    from backend.run import app
+except ImportError:
+    from run import app
