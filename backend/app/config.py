@@ -7,8 +7,10 @@ def _resolve_database_url() -> str:
     database_url = (
         os.getenv('DATABASE_URL')
         or os.getenv('DATABASE_URL_UNPOOLED')
+        or os.getenv('POSTGRES_PRISMA_URL')
         or os.getenv('POSTGRES_URL')
         or os.getenv('POSTGRES_URL_NON_POOLING')
+        or os.getenv('POSTGRES_URL_NO_SSL')
         or 'sqlite:///nextap_dev.db'
     )
 
