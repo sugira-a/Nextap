@@ -1,5 +1,6 @@
 import os
 from datetime import timedelta
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 
 def _resolve_database_url() -> str:
@@ -24,6 +25,22 @@ def _resolve_database_url() -> str:
 
     if database_url.startswith('postgresql+psycopg2://'):
         database_url = database_url.replace('postgresql+psycopg2://', 'postgresql+pg8000://', 1)
+
+    if database_url.startswith('postgresql+pg8000://'):
+        parsed = urlparse(database_url)
+        query_pairs = parse_qsl(parsed.query, keep_blank_values=True)
+        normalized_query = []
+
+        for key, value in query_pairs:
+            lower_key = key.lower()
+            if lower_key == 'sslmode':
+                # pg8000 doesn't accept libpq sslmode; map to a simpler flag.
+                if value.lower() in {'require', 'verify-ca', 'verify-full'}:
+                    normalized_query.append(('ssl', 'true'))
+                continue
+            normalized_query.append((key, value))
+
+        database_url = urlunparse(parsed._replace(query=urlencode(normalized_query)))
 
     return database_url
 
