@@ -32,33 +32,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) {
-            return;
-          }
-
-          if (id.includes("react") || id.includes("scheduler")) {
-            return "vendor-react";
-          }
-
-          if (id.includes("react-router") || id.includes("@remix-run")) {
-            return "vendor-router";
-          }
-
-          if (id.includes("@tanstack")) {
-            return "vendor-query";
-          }
-
-          if (id.includes("recharts") || id.includes("d3-")) {
-            return "vendor-charts";
-          }
-
-          if (id.includes("framer-motion") || id.includes("motion-dom") || id.includes("motion-utils")) {
-            return "vendor-motion";
-          }
-
-          return "vendor-misc";
-        },
+        inlineDynamicImports: false,
       },
     },
   },
