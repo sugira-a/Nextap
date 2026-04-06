@@ -3,8 +3,8 @@ import secrets
 import string
 
 from flask import Flask, jsonify, send_from_directory
-from app.config import config
-from app.extensions import init_extensions, db, jwt, migrate
+from .config import config
+from .extensions import init_extensions, db, jwt, migrate
 
 
 def create_app(config_name='development'):
@@ -123,7 +123,7 @@ def create_app(config_name='development'):
 
 def seed_default_admin():
     """Create a default admin user for local development if none exists."""
-    from app.models import User, Profile
+    from .models import User, Profile
 
     admin_email = os.getenv('ADMIN_EMAIL', 'admin@nextap.local')
     admin_password = os.getenv('ADMIN_PASSWORD', 'Admin123!')
@@ -217,7 +217,7 @@ def _generate_short_card_code(length=6):
 def ensure_card_schema():
     """Add card short code column and backfill values for existing records."""
     from sqlalchemy import text
-    from app.models import Card
+    from .models import Card
 
     existing_columns = {
         row[1]
@@ -247,7 +247,7 @@ def ensure_card_schema():
 
 def register_blueprints(app):
     """Register all route blueprints"""
-    from app.routes import auth, profile, card, company, employee, invitation, department, analytics, admin
+    from .routes import auth, profile, card, company, employee, invitation, department, analytics, admin
     
     # Register API blueprints
     app.register_blueprint(auth.bp)

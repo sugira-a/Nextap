@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
-from app.extensions import db
-from app.models import Invitation, Company, Card, User, AuditLog
-from app.utils.auth import get_jwt_user, validate_request_json
+from ..extensions import db
+from ..models import Invitation, Company, Card, User, AuditLog
+from ..utils.auth import get_jwt_user, validate_request_json
 from datetime import datetime, timedelta
 import secrets
 

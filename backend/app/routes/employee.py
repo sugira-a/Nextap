@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
-from app.extensions import db
-from app.models import User, Company, Department, Card, AuditLog
-from app.utils.auth import get_jwt_user, require_company_member, validate_request_json
+from ..extensions import db
+from ..models import User, Company, Department, Card, AuditLog
+from ..utils.auth import get_jwt_user, require_company_member, validate_request_json
 from datetime import datetime
 
 bp = Blueprint('employee', __name__, url_prefix='/api/company/<company_id>/employees')

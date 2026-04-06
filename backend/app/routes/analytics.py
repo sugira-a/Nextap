@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
-from app.extensions import db
-from app.models import AnalyticsEvent, Company, Card, Profile, User
-from app.utils.auth import get_jwt_user
+from ..extensions import db
+from ..models import AnalyticsEvent, Company, Card, Profile, User
+from ..utils.auth import get_jwt_user
 from datetime import datetime, timedelta
 
 bp = Blueprint('analytics', __name__, url_prefix='/api/analytics')

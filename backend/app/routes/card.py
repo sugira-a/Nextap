@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
-from app.extensions import db
-from app.models import Card, User, Profile, AnalyticsEvent
-from app.utils.auth import get_jwt_user, require_company_member, validate_request_json
+from ..extensions import db
+from ..models import Card, User, Profile, AnalyticsEvent
+from ..utils.auth import get_jwt_user, require_company_member, validate_request_json
 from datetime import datetime
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from sqlalchemy import or_

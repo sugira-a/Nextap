@@ -3,7 +3,7 @@ from functools import wraps
 from flask import request, jsonify
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_jwt_extended import create_access_token, create_refresh_token
-from app.models import User, Company
+from ..models import User, Company
 import json
 
 # JWT token creation helpers
