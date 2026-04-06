@@ -112,18 +112,27 @@ def create_app(config_name='development'):
     register_cli_commands(app)
     
     with app.app_context():
-        # Create tables
-        db.create_all()
-        if _is_sqlite_database():
-            ensure_profile_schema()
-            ensure_card_schema()
-        seed_default_admin()
+        if _should_run_db_bootstrap(app):
+            db.create_all()
+            if _is_sqlite_database():
+                ensure_profile_schema()
+                ensure_card_schema()
+            seed_default_admin()
     
     return app
 
 
 def _is_sqlite_database() -> bool:
     return db.engine.dialect.name == 'sqlite'
+
+
+def _should_run_db_bootstrap(app) -> bool:
+    """Run dev-time DB bootstrap only when explicitly enabled or in debug/testing."""
+    env_override = os.getenv('RUN_DB_BOOTSTRAP')
+    if env_override is not None:
+        return env_override.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+    return bool(app.debug or app.testing)
 
 
 def seed_default_admin():
