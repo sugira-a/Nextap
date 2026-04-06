@@ -7,12 +7,14 @@ def _resolve_database_url() -> str:
     database_url = (
         os.getenv('DATABASE_URL')
         or os.getenv('DATABASE_URL_UNPOOLED')
-        or os.getenv('POSTGRES_PRISMA_URL')
         or os.getenv('POSTGRES_URL')
         or os.getenv('POSTGRES_URL_NON_POOLING')
         or os.getenv('POSTGRES_URL_NO_SSL')
         or 'sqlite:///nextap_dev.db'
     )
+
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql+psycopg://', 1)
 
     if database_url.startswith('postgresql://'):
         database_url = database_url.replace('postgresql://', 'postgresql+psycopg://', 1)
