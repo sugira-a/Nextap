@@ -2,19 +2,19 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/app.py"
+      "destination": "/api/[...path].py"
     },
     {
       "source": "/_/backend/api/(.*)",
-      "destination": "/app.py"
+      "destination": "/api/[...path].py"
     },
     {
       "source": "/health",
-      "destination": "/app.py"
+      "destination": "/api/[...path].py"
     },
     {
       "source": "/_/backend/health",
-      "destination": "/app.py"
+      "destination": "/api/[...path].py"
     }
   ]
 }

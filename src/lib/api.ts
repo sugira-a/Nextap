@@ -6,6 +6,10 @@ type ApiErrorPayload = {
 
 const BACKEND_ROUTE_PREFIX = import.meta.env.VITE_BACKEND_ROUTE_PREFIX || "/_/backend";
 
+function isLocalDevelopmentHost(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
 function buildRequestCandidates(path: string): string[] {
   const candidates = [path];
   const isApiPath = path.startsWith("/api") || path.startsWith("/health");
@@ -16,15 +20,15 @@ function buildRequestCandidates(path: string): string[] {
 
   const { protocol, hostname, port } = window.location;
   const sameOriginBackend = `${protocol}//${hostname}${port ? `:${port}` : ""}${BACKEND_ROUTE_PREFIX}${path}`;
-  const localhostApi = `http://localhost:5000${path}`;
-  const loopbackApi = `http://127.0.0.1:5000${path}`;
 
   const unique = new Set<string>([path]);
 
   unique.add(sameOriginBackend);
 
-  unique.add(localhostApi);
-  unique.add(loopbackApi);
+  if (isLocalDevelopmentHost(hostname)) {
+    unique.add(`http://localhost:5000${path}`);
+    unique.add(`http://127.0.0.1:5000${path}`);
+  }
 
   return Array.from(unique);
 }
