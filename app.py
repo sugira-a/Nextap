@@ -1,12 +1,24 @@
 """Vercel Flask entrypoint."""
 
-import sys
 import os
+from dotenv import load_dotenv
 
-# Add backend directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
+from backend.app import create_app, db
 
-try:
-    from backend.run import app
-except ImportError:
-    from run import app
+# Load env vars in serverless runtime as well.
+load_dotenv()
+
+app = create_app(os.getenv('FLASK_ENV', 'production'))
+
+
+@app.shell_context_processor
+def make_shell_context():
+    from backend.app import models
+
+    return {
+        'db': db,
+        'User': models.User,
+        'Company': models.Company,
+        'Card': models.Card,
+        'Profile': models.Profile,
+    }
