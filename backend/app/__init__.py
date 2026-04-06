@@ -128,6 +128,9 @@ def _is_sqlite_database() -> bool:
 
 def _should_run_db_bootstrap(app) -> bool:
     """Run dev-time DB bootstrap only when explicitly enabled or in debug/testing."""
+    if app.config.get('SQLALCHEMY_DATABASE_URI', '').startswith('sqlite:'):
+        return True
+
     env_override = os.getenv('RUN_DB_BOOTSTRAP')
     if env_override is not None:
         return env_override.strip().lower() in {'1', 'true', 'yes', 'on'}
