@@ -2,7 +2,7 @@ import os
 from datetime import timedelta
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-
+# Triggered rebuild - pg8000 driver now ensured in requirements
 def _resolve_database_url() -> str:
     """Resolve the database URL from common deployment environment variables."""
     database_url = (
