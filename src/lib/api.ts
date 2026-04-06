@@ -38,6 +38,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     "Accept": "application/json",
     "Content-Type": "application/json",
   };
+  const expectsJson = path.startsWith("/api") || path.startsWith("/health");
 
   const requestCandidates = buildRequestCandidates(path);
   let lastError: Error | null = null;
@@ -55,6 +56,19 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       });
 
       const contentType = response.headers.get("content-type") || "";
+      const isJsonResponse = contentType.includes("application/json");
+
+      // API endpoints should always return JSON. If an HTML fallback is returned,
+      // treat it as a failed candidate and continue fallback logic.
+      if (expectsJson && !isJsonResponse) {
+        const htmlFallbackError = new Error("Unexpected non-JSON API response");
+        if (index < requestCandidates.length - 1) {
+          lastError = htmlFallbackError;
+          continue;
+        }
+        throw htmlFallbackError;
+      }
+
       const payload = contentType.includes("application/json")
         ? ((await response.json()) as T & ApiErrorPayload)
         : (await response.text());

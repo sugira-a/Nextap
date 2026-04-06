@@ -20,6 +20,20 @@ type CardLookupResponse = {
   display_mode?: "profile" | "activation";
 };
 
+function isCardLookupResponse(value: unknown): value is CardLookupResponse {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Partial<CardLookupResponse>;
+  if (!candidate.card || typeof candidate.card !== "object") {
+    return false;
+  }
+
+  const card = candidate.card as { code?: unknown };
+  return typeof card.code === "string";
+}
+
 const CardRoute = () => {
   const { code } = useParams<{ code: string }>();
   const [loading, setLoading] = useState(true);
@@ -31,7 +45,12 @@ const CardRoute = () => {
 
       try {
         setLoading(true);
-        const response = await apiRequest<CardLookupResponse>(`/api/card/${code}`);
+        const response = await apiRequest<unknown>(`/api/card/${code}`);
+
+        if (!isCardLookupResponse(response)) {
+          throw new Error("Invalid card response from server");
+        }
+
         setCardData(response);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Card not found");
