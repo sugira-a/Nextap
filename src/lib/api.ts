@@ -90,9 +90,12 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
 
       return payload as T;
     } catch (error) {
+      // Only retry alternate candidates for not-found/network-style failures.
       if (index < requestCandidates.length - 1) {
-        lastError = error instanceof Error ? error : new Error("Request failed");
-        continue;
+        if (isNotFoundApiError(error)) {
+          lastError = error instanceof Error ? error : new Error("Request failed");
+          continue;
+        }
       }
 
       throw (error instanceof Error ? error : new Error("Request failed"));
