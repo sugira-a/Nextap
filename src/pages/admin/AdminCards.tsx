@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,10 +57,10 @@ const AdminCards = () => {
   const [qrOpen, setQrOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<AdminCard | null>(null);
 
-  const authHeaders = useMemo(() => {
+  const getAuthHeaders = () => {
     const token = localStorage.getItem("access_token");
     return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
+  };
 
   const fetchCards = async () => {
     try {
@@ -84,7 +84,7 @@ const AdminCards = () => {
       }
 
       const response = await apiRequest<{ cards: AdminCard[] }>(`/api/admin/cards?${params}`, {
-        headers: authHeaders,
+        headers: getAuthHeaders(),
       });
       setCards(response.cards || []);
     } catch (error) {
@@ -98,7 +98,7 @@ const AdminCards = () => {
     const fetchCompanies = async () => {
       try {
         const response = await apiRequest<{ companies: AdminCompany[] }>("/api/admin/companies?per_page=200", {
-          headers: authHeaders,
+          headers: getAuthHeaders(),
         });
         setCompanies(response.companies || []);
       } catch {
@@ -131,7 +131,7 @@ const AdminCards = () => {
       await apiRequest(`/api/admin/cards/${cardId}/status`, {
         method: "PATCH",
         headers: {
-          ...authHeaders,
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ status }),
       });
@@ -178,37 +178,37 @@ const AdminCards = () => {
         () =>
           apiRequest<GenerateCardsResponse>(`/api/admin/companies/${targetCompanyId}/cards/generate`, {
             method: "POST",
-            headers: authHeaders,
+            headers: getAuthHeaders(),
             body: JSON.stringify({ count: generateCount }),
           }),
         () =>
           apiRequest<GenerateCardsResponse>(`/api/company/${targetCompanyId}/cards/generate`, {
             method: "POST",
-            headers: authHeaders,
+            headers: getAuthHeaders(),
             body: JSON.stringify({ count: generateCount }),
           }),
         () =>
           apiRequest<GenerateCardsResponse>(`/api/admin/cards-create`, {
             method: "POST",
-            headers: authHeaders,
+            headers: getAuthHeaders(),
             body: JSON.stringify({ company_id: targetCompanyId, count: generateCount }),
           }),
         () =>
           apiRequest<GenerateCardsResponse>(`/api/admin/cards`, {
             method: "POST",
-            headers: authHeaders,
+            headers: getAuthHeaders(),
             body: JSON.stringify({ company_id: targetCompanyId, count: generateCount }),
           }),
         () =>
           apiRequest<GenerateCardsResponse>(`/api/admin/cards/generate`, {
             method: "POST",
-            headers: authHeaders,
+            headers: getAuthHeaders(),
             body: JSON.stringify({ company_id: targetCompanyId, count: generateCount }),
           }),
         () =>
           apiRequest<GenerateCardsResponse>(`/api/company/cards/generate`, {
             method: "POST",
-            headers: authHeaders,
+            headers: getAuthHeaders(),
             body: JSON.stringify({ company_id: targetCompanyId, count: generateCount }),
           }),
       ]);
@@ -392,7 +392,7 @@ const AdminCards = () => {
           <Button variant="outline" size="sm" onClick={exportCards}>
             <Download className="w-3.5 h-3.5 mr-1.5" /> Export
           </Button>
-          <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={generateCards} disabled={generating || companies.length === 0}>
+          <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={generateCards} disabled={generating}>
             <Plus className="w-3.5 h-3.5 mr-1.5" /> {generating ? "Generating..." : "Generate Cards"}
           </Button>
         </div>
