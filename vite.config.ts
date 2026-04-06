@@ -37,6 +37,10 @@ export default defineConfig(({ mode }) => ({
             return;
           }
 
+          if (id.includes("react") || id.includes("scheduler")) {
+            return "vendor-react";
+          }
+
           if (id.includes("react-router") || id.includes("@remix-run")) {
             return "vendor-router";
           }
@@ -51,10 +55,6 @@ export default defineConfig(({ mode }) => ({
 
           if (id.includes("framer-motion") || id.includes("motion-dom") || id.includes("motion-utils")) {
             return "vendor-motion";
-          }
-
-          if (id.includes("react") || id.includes("scheduler")) {
-            return "vendor-react";
           }
 
           return "vendor-misc";
