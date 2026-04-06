@@ -11,8 +11,12 @@ def _resolve_database_url() -> str:
         or os.getenv('POSTGRES_URL')
         or os.getenv('POSTGRES_URL_NON_POOLING')
         or os.getenv('POSTGRES_URL_NO_SSL')
-        or 'sqlite:///nextap_dev.db'
     )
+
+    if not database_url:
+        if os.getenv('FLASK_ENV', '').strip().lower() == 'production':
+            raise RuntimeError('DATABASE_URL (or compatible POSTGRES_* URL) is required in production')
+        database_url = 'sqlite:///nextap_dev.db'
 
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql+pg8000://', 1)
