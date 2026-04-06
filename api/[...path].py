@@ -1,11 +1,8 @@
 """Vercel Flask API entrypoint."""
 
 import os
-from dotenv import load_dotenv
 
 from backend.app import create_app, db
-
-load_dotenv()
 
 app = create_app(os.getenv('FLASK_ENV', 'production'))
 
