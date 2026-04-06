@@ -114,11 +114,16 @@ def create_app(config_name='development'):
     with app.app_context():
         # Create tables
         db.create_all()
-        ensure_profile_schema()
-        ensure_card_schema()
+        if _is_sqlite_database():
+            ensure_profile_schema()
+            ensure_card_schema()
         seed_default_admin()
     
     return app
+
+
+def _is_sqlite_database() -> bool:
+    return db.engine.dialect.name == 'sqlite'
 
 
 def seed_default_admin():
@@ -165,6 +170,9 @@ def seed_default_admin():
 def ensure_profile_schema():
     """Add newly introduced profile columns for existing SQLite databases."""
     from sqlalchemy import text
+
+    if not _is_sqlite_database():
+        return
 
     existing_columns = {
         row[1]
@@ -218,6 +226,9 @@ def ensure_card_schema():
     """Add card short code column and backfill values for existing records."""
     from sqlalchemy import text
     from .models import Card
+
+    if not _is_sqlite_database():
+        return
 
     existing_columns = {
         row[1]
