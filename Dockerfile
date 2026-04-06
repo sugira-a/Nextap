@@ -14,7 +14,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     FLASK_ENV=production \
     PORT=8080 \
-    DATABASE_URL=sqlite:////app/nextap.db \
+    DATABASE_URL=sqlite:////data/nextap.db \
     FRONTEND_DIST_DIR=/app/dist
 
 COPY backend/requirements.txt backend/requirements.txt

@@ -118,6 +118,7 @@ def create_app(config_name='development'):
                 ensure_profile_schema()
                 ensure_card_schema()
             seed_default_admin()
+            seed_default_company()
     
     return app
 
@@ -128,12 +129,17 @@ def _is_sqlite_database() -> bool:
 
 def _should_run_db_bootstrap(app) -> bool:
     """Run dev-time DB bootstrap only when explicitly enabled or in debug/testing."""
-    if app.config.get('SQLALCHEMY_DATABASE_URI', '').startswith('sqlite:'):
-        return True
-
     env_override = os.getenv('RUN_DB_BOOTSTRAP')
     if env_override is not None:
         return env_override.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+    # Production should not auto-bootstrap/seeding unless explicitly enabled.
+    flask_env = os.getenv('FLASK_ENV', '').strip().lower()
+    if flask_env == 'production':
+        return False
+
+    if app.config.get('SQLALCHEMY_DATABASE_URI', '').startswith('sqlite:'):
+        return True
 
     return bool(app.debug or app.testing)
 
@@ -177,6 +183,56 @@ def seed_default_admin():
     db.session.commit()
 
     print(f"[INFO] Seeded default admin account: {admin_email}")
+
+
+def seed_default_company():
+    """Create a starter company for the default admin on fresh SQLite databases."""
+    from .models import Company, CompanyPolicy, User
+
+    admin_user = User.query.filter_by(role='admin').first()
+    if not admin_user:
+        return
+
+    existing_company = Company.query.filter_by(admin_user_id=admin_user.id).first()
+    if existing_company:
+        if not admin_user.company_id:
+            admin_user.company_id = existing_company.id
+            db.session.commit()
+        return
+
+    company_name = os.getenv('DEFAULT_COMPANY_NAME', 'NexTap Demo Company')
+    slug_base = os.getenv('DEFAULT_COMPANY_SLUG', 'nextap-demo')
+    slug = slug_base
+    suffix = 1
+    while Company.query.filter_by(slug=slug).first():
+        suffix += 1
+        slug = f'{slug_base}-{suffix}'
+
+    company = Company(
+        name=company_name,
+        slug=slug,
+        primary_color=os.getenv('DEFAULT_COMPANY_PRIMARY_COLOR', '#111827'),
+        accent_color=os.getenv('DEFAULT_COMPANY_ACCENT_COLOR', '#22C55E'),
+        plan='starter',
+        status='active',
+        admin_user_id=admin_user.id,
+    )
+    db.session.add(company)
+    db.session.flush()
+
+    policy = CompanyPolicy(
+        company_id=company.id,
+        required_fields=['title', 'photo_url'],
+        editable_fields=['title', 'bio', 'phone', 'whatsapp', 'email_public', 'website', 'location', 'photo_url'],
+        approval_required=False,
+        auto_approve=True,
+    )
+    db.session.add(policy)
+
+    admin_user.company_id = company.id
+    db.session.commit()
+
+    print(f"[INFO] Seeded default company: {company.name} ({company.slug})")
 
 
 def ensure_profile_schema():
