@@ -5,7 +5,7 @@ primary_region = "iad"
   dockerfile = "Dockerfile"
 
 [deploy]
-  release_command = "python -c \"from backend.run import app, db; ctx = app.app_context(); ctx.push(); db.create_all()\""
+  release_command = "python -c \"from backend.run import app, db; from backend.app import seed_default_admin; ctx = app.app_context(); ctx.push(); db.create_all(); seed_default_admin()\""
 
 [env]
   PORT = "8080"
