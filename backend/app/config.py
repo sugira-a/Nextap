@@ -33,17 +33,12 @@ def _resolve_database_url() -> str:
     if database_url.startswith('postgresql+pg8000://'):
         parsed = urlparse(database_url)
         query_pairs = parse_qsl(parsed.query, keep_blank_values=True)
-        normalized_query = []
-
-        for key, value in query_pairs:
-            lower_key = key.lower()
-            if lower_key == 'sslmode':
-                # pg8000 doesn't accept libpq sslmode; map to a simpler flag.
-                if value.lower() in {'require', 'verify-ca', 'verify-full'}:
-                    normalized_query.append(('ssl', 'true'))
-                continue
-            normalized_query.append((key, value))
-
+        unsupported_keys = {'sslmode', 'channel_binding'}
+        normalized_query = [
+            (key, value)
+            for key, value in query_pairs
+            if key.lower() not in unsupported_keys
+        ]
         database_url = urlunparse(parsed._replace(query=urlencode(normalized_query)))
 
     return database_url
