@@ -14,10 +14,16 @@ def _resolve_database_url() -> str:
     )
 
     if database_url.startswith('postgres://'):
-        database_url = database_url.replace('postgres://', 'postgresql+psycopg://', 1)
+        database_url = database_url.replace('postgres://', 'postgresql+pg8000://', 1)
 
     if database_url.startswith('postgresql://'):
-        database_url = database_url.replace('postgresql://', 'postgresql+psycopg://', 1)
+        database_url = database_url.replace('postgresql://', 'postgresql+pg8000://', 1)
+
+    if database_url.startswith('postgresql+psycopg://'):
+        database_url = database_url.replace('postgresql+psycopg://', 'postgresql+pg8000://', 1)
+
+    if database_url.startswith('postgresql+psycopg2://'):
+        database_url = database_url.replace('postgresql+psycopg2://', 'postgresql+pg8000://', 1)
 
     return database_url
 
