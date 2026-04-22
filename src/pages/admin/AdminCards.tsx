@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -146,7 +146,7 @@ const AdminCards = () => {
           <button onClick={printCardSheet} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Print</button>
           <button onClick={exportCards} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Export CSV</button>
           <button onClick={generateCards} disabled={generating} className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50">
-            {generating ? "Generatingâ€¦" : "Generate Cards"}
+            {generating ? "Generating..." : "Generate Cards"}
           </button>
         </div>
       </div>
@@ -163,7 +163,7 @@ const AdminCards = () => {
         </select>
         <input
           type="text"
-          placeholder="Search cards or usersâ€¦"
+          placeholder="Search cards or users..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           onKeyDown={e => e.key === "Enter" && fetchCards()}
@@ -229,7 +229,7 @@ const AdminCards = () => {
                   ) : <span className="text-xs text-zinc-400">Unassigned</span>}
                 </div>
                 <div className="col-span-2 text-xs text-zinc-400">
-                  {card.created_at ? new Date(card.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "â€”"}
+                  {card.created_at ? new Date(card.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : ""”"}
                 </div>
                 <div className="col-span-1 text-right">
                   <button

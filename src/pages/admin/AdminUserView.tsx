@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -250,10 +250,10 @@ const AdminUserView = () => {
           <Link to="/admin/users" className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">â† Back</Link>
           <button onClick={load} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Refresh</button>
           <button onClick={remove} disabled={deleting} className="text-sm border border-red-200 rounded-xl px-4 py-2.5 text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50">
-            {deleting ? "Deletingâ€¦" : "Delete"}
+            {deleting ? "Deleting..." : "Delete"}
           </button>
           <button onClick={save} disabled={saving} className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50">
-            {saving ? "Savingâ€¦" : "Save"}
+            {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>
@@ -288,7 +288,7 @@ const AdminUserView = () => {
 
           <div>
             <label className="text-xs text-zinc-400 mb-1.5 block">Photo URL</label>
-            <input value={form.photo_url} onChange={e => setForm(p => ({ ...p, photo_url: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" placeholder="https://â€¦" />
+            <input value={form.photo_url} onChange={e => setForm(p => ({ ...p, photo_url: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" placeholder="https://..." />
           </div>
 
           <div>
@@ -314,7 +314,7 @@ const AdminUserView = () => {
 
           <div>
             <label className="text-xs text-zinc-400 mb-1.5 block">Website</label>
-            <input value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" placeholder="https://â€¦" />
+            <input value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" placeholder="https://..." />
           </div>
 
           <div className="grid sm:grid-cols-3 gap-3">
@@ -338,11 +338,11 @@ const AdminUserView = () => {
             <div>
               <p className="text-xs text-zinc-400 mb-0.5">Card</p>
               <p className="font-medium text-zinc-900 font-mono">{data.card?.code || "No card"}</p>
-              <p className="text-xs text-zinc-400 capitalize">{data.card?.status || "â€”"}</p>
+              <p className="text-xs text-zinc-400 capitalize">{data.card?.status || ""”"}</p>
             </div>
             <div>
               <p className="text-xs text-zinc-400 mb-0.5">Joined</p>
-              <p className="font-medium text-zinc-900">{data.user.created_at ? new Date(data.user.created_at).toLocaleDateString() : "â€”"}</p>
+              <p className="font-medium text-zinc-900">{data.user.created_at ? new Date(data.user.created_at).toLocaleDateString() : ""”"}</p>
             </div>
           </div>
         </div>

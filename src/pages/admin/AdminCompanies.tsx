@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -121,7 +121,7 @@ const AdminCompanies = () => {
               </div>
             </div>
             <button type="submit" disabled={creating} className="bg-zinc-900 text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50">
-              {creating ? "Creatingâ€¦" : "Create Company"}
+              {creating ? "Creating..." : "Create Company"}
             </button>
           </form>
           {issuedCredentials && (

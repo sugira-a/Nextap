@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { apiRequest, apiRequestWithFallback } from "@/lib/api";
@@ -166,7 +166,7 @@ const AdminAnalytics = () => {
       {/* Weekly chart + Status */}
       <div className="grid lg:grid-cols-5 gap-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6">
-          <p className="text-sm font-semibold text-zinc-900 mb-6">Events â€” Last 7 Days</p>
+          <p className="text-sm font-semibold text-zinc-900 mb-6">Events "” Last 7 Days</p>
           {eventsByDay.length > 0 ? (
             <>
               <div className="flex items-end gap-2 h-36">

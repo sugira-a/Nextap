@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { UserCircle2, TrendingUp, CreditCard, Users, BarChart3, Eye } from "lucide-react";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, getUserIdFromToken } from "@/lib/api";
 
 type UserAnalytics = {
   total_events: number;
@@ -37,10 +37,20 @@ const DashboardOverview = () => {
       try {
         const token = localStorage.getItem("access_token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const me = await apiRequest<{ user: { id: string }; profile: { completion_status?: number } | null }>("/api/auth/me", { headers });
-        setCompletion(me.profile?.completion_status || 0);
-        const analyticsResponse = await apiRequest<{ analytics: UserAnalytics }>(`/api/analytics/user/${me.user.id}?days=30`, { headers });
-        setAnalytics(analyticsResponse.analytics);
+        const userId = getUserIdFromToken();
+        if (userId) {
+          const [me, analyticsResponse] = await Promise.all([
+            apiRequest<{ user: { id: string }; profile: { completion_status?: number } | null }>("/api/auth/me", { headers }),
+            apiRequest<{ analytics: UserAnalytics }>(`/api/analytics/user/${userId}?days=30`, { headers }),
+          ]);
+          setCompletion(me.profile?.completion_status || 0);
+          setAnalytics(analyticsResponse.analytics);
+        } else {
+          const me = await apiRequest<{ user: { id: string }; profile: { completion_status?: number } | null }>("/api/auth/me", { headers });
+          setCompletion(me.profile?.completion_status || 0);
+          const analyticsResponse = await apiRequest<{ analytics: UserAnalytics }>(`/api/analytics/user/${me.user.id}?days=30`, { headers });
+          setAnalytics(analyticsResponse.analytics);
+        }
       } finally {
         setLoading(false);
       }

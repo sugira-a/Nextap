@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -153,7 +153,7 @@ const AdminCardView = () => {
           <div className="grid sm:grid-cols-2 gap-4 pt-2">
             <div className="bg-zinc-50 rounded-xl p-4">
               <p className="text-xs text-zinc-400 mb-1">Company</p>
-              <p className="text-sm font-medium text-zinc-900">{data.company?.name || "â€”"}</p>
+              <p className="text-sm font-medium text-zinc-900">{data.company?.name || ""”"}</p>
             </div>
             <div className="bg-zinc-50 rounded-xl p-4">
               <p className="text-xs text-zinc-400 mb-1">Assigned User</p>
@@ -167,7 +167,7 @@ const AdminCardView = () => {
           </div>
           <div className="bg-zinc-50 rounded-xl p-4">
             <p className="text-xs text-zinc-400 mb-1">Created</p>
-            <p className="text-sm text-zinc-700">{data.card.created_at ? new Date(data.card.created_at).toLocaleString() : "â€”"}</p>
+            <p className="text-sm text-zinc-700">{data.card.created_at ? new Date(data.card.created_at).toLocaleString() : ""”"}</p>
           </div>
         </div>
 
@@ -190,7 +190,7 @@ const AdminCardView = () => {
               <div key={event.id} className="px-6 py-3.5 hover:bg-zinc-50 transition-colors">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium text-zinc-900 capitalize">{event.event_type}</p>
-                  <p className="text-xs text-zinc-400">{event.timestamp ? new Date(event.timestamp).toLocaleString() : "â€”"}</p>
+                  <p className="text-xs text-zinc-400">{event.timestamp ? new Date(event.timestamp).toLocaleString() : ""”"}</p>
                 </div>
                 <p className="text-xs text-zinc-400 mt-0.5">
                   {[event.device_type, event.browser, event.os].filter(Boolean).join(" Â· ") || "Unknown device"}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -158,7 +158,7 @@ const AdminOverview = () => {
                     <p className="text-xs text-zinc-400 mt-0.5 truncate">{item.actor?.email || "System"}</p>
                   </div>
                   <span className="text-xs text-zinc-300 ml-4 whitespace-nowrap tabular-nums">
-                    {item.timestamp ? new Date(item.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "â€”"}
+                    {item.timestamp ? new Date(item.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""”"}
                   </span>
                 </div>
               ))}

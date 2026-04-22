@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -181,7 +181,7 @@ const CompanySettings = () => {
           disabled={saving}
           className="bg-zinc-900 text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50"
         >
-          {saving ? "Savingâ€¦" : "Save Changes"}
+          {saving ? "Saving..." : "Save Changes"}
         </button>
       </section>
 
@@ -238,7 +238,7 @@ const CompanySettings = () => {
           disabled={saving}
           className="bg-zinc-900 text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50"
         >
-          {saving ? "Savingâ€¦" : "Save Policy"}
+          {saving ? "Saving..." : "Save Policy"}
         </button>
       </section>
 
@@ -251,7 +251,7 @@ const CompanySettings = () => {
           disabled={deleting}
           className="text-sm font-medium px-5 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
         >
-          {deleting ? "Deletingâ€¦" : "Delete Company Workspace"}
+          {deleting ? "Deleting..." : "Delete Company Workspace"}
         </button>
       </section>
     </motion.div>

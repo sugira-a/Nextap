@@ -26,3 +26,6 @@ dist-ssr
 # Local test databases
 temp_*.db
 backend/instance/nextap_dev.db
+
+.env
+backend/.env

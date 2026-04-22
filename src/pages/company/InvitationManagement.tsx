@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/api";
@@ -132,7 +132,7 @@ const InvitationManagement = () => {
             disabled={inviting}
             className="bg-zinc-900 text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50"
           >
-            {inviting ? "Sendingâ€¦" : "Send Invitation"}
+            {inviting ? "Sending..." : "Send Invitation"}
           </button>
         </motion.div>
       )}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -132,7 +132,7 @@ const AdminUsers = () => {
             </div>
           </div>
           <button onClick={inviteUser} disabled={inviting} className="bg-zinc-900 text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50">
-            {inviting ? "Invitingâ€¦" : "Invite"}
+            {inviting ? "Inviting..." : "Invite"}
           </button>
         </motion.div>
       )}
@@ -141,7 +141,7 @@ const AdminUsers = () => {
       <div className="flex gap-3">
         <input
           type="text"
-          placeholder="Search usersâ€¦"
+          placeholder="Search users..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="flex-1 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
@@ -182,7 +182,7 @@ const AdminUsers = () => {
                     "bg-zinc-100 text-zinc-500"
                   }`}>{user.status}</span>
                 </div>
-                <div className="col-span-2 text-xs text-zinc-400">{user.company?.name || "â€”"}</div>
+                <div className="col-span-2 text-xs text-zinc-400">{user.company?.name || ""”"}</div>
                 <div className="col-span-2 text-right">
                   <Link to={`/admin/users/${user.id}`} className="text-xs font-medium text-zinc-500 hover:text-zinc-900 border border-zinc-200 px-3 py-1.5 rounded-lg transition-colors">View â†’</Link>
                 </div>

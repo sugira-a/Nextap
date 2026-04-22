@@ -33,6 +33,18 @@ function buildRequestCandidates(path: string): string[] {
   return Array.from(unique);
 }
 
+/** Decode the user ID from the stored JWT without a network call. */
+export function getUserIdFromToken(): string | null {
+  try {
+    const token = localStorage.getItem("access_token");
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload.sub ?? payload.identity ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const defaultHeaders: HeadersInit = {
     "Accept": "application/json",

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -93,7 +93,7 @@ const EmployeeManagement = () => {
       <div className="flex gap-3">
         <input
           type="text"
-          placeholder="Search employeesâ€¦"
+          placeholder="Search employees..."
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1); }}
           className="flex-1 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"

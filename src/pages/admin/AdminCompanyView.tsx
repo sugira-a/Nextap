@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -230,10 +230,10 @@ const AdminCompanyView = () => {
           <Link to="/admin/companies" className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">â† Back</Link>
           <button onClick={load} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Refresh</button>
           <button onClick={remove} disabled={deleting} className="text-sm border border-red-200 rounded-xl px-4 py-2.5 text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50">
-            {deleting ? "Deletingâ€¦" : "Delete"}
+            {deleting ? "Deleting..." : "Delete"}
           </button>
           <button onClick={save} disabled={saving} className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50">
-            {saving ? "Savingâ€¦" : "Save"}
+            {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>
@@ -265,7 +265,7 @@ const AdminCompanyView = () => {
           </div>
           <div>
             <label className="text-xs text-zinc-400 mb-1.5 block">Logo URL</label>
-            <input value={form.logo_url} onChange={e => setForm(p => ({ ...p, logo_url: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" placeholder="https://â€¦" />
+            <input value={form.logo_url} onChange={e => setForm(p => ({ ...p, logo_url: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" placeholder="https://..." />
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
@@ -305,7 +305,7 @@ const AdminCompanyView = () => {
         <div className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-4">
           <p className="text-sm font-semibold text-zinc-900 border-b border-zinc-100 pb-3">Details</p>
           <div className="space-y-3 text-sm">
-            <div><p className="text-xs text-zinc-400 mb-0.5">Created</p><p className="font-medium text-zinc-900">{data.company.created_at ? new Date(data.company.created_at).toLocaleDateString() : "â€”"}</p></div>
+            <div><p className="text-xs text-zinc-400 mb-0.5">Created</p><p className="font-medium text-zinc-900">{data.company.created_at ? new Date(data.company.created_at).toLocaleDateString() : ""”"}</p></div>
             <div><p className="text-xs text-zinc-400 mb-0.5">Slug</p><p className="font-mono text-zinc-900">/{data.company.slug}</p></div>
             <div className="pt-2">
               <div className="flex items-center gap-2 mb-2">

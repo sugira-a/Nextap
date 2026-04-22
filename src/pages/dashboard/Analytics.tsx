@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, Zap, BarChart3, TrendingUp, ArrowUpRight } from "lucide-react";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, getUserIdFromToken } from "@/lib/api";
 
 const BAR_COLOR = "#1e3a5f";
 
@@ -20,9 +20,15 @@ const Analytics = () => {
       try {
         const token = localStorage.getItem("access_token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const me = await apiRequest<{ user: { id: string } }>("/api/auth/me", { headers });
-        const data = await apiRequest<{ analytics: any }>(`/api/analytics/user/${me.user.id}?days=30`, { headers });
-        setAnalytics(data.analytics);
+        const userId = getUserIdFromToken();
+        if (userId) {
+          const data = await apiRequest<{ analytics: any }>(`/api/analytics/user/${userId}?days=30`, { headers });
+          setAnalytics(data.analytics);
+        } else {
+          const me = await apiRequest<{ user: { id: string } }>("/api/auth/me", { headers });
+          const data = await apiRequest<{ analytics: any }>(`/api/analytics/user/${me.user.id}?days=30`, { headers });
+          setAnalytics(data.analytics);
+        }
       } finally {
         setLoading(false);
       }

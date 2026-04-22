@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/api";
@@ -132,7 +132,7 @@ const CardManagement = () => {
           disabled={creating}
           className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50"
         >
-          {creating ? "Generatingâ€¦" : "Add Cards"}
+          {creating ? "Generating..." : "Add Cards"}
         </button>
       </div>
 
@@ -140,7 +140,7 @@ const CardManagement = () => {
       <div className="flex gap-3">
         <input
           type="text"
-          placeholder="Search by codeâ€¦"
+          placeholder="Search by code..."
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1); }}
           className="flex-1 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
@@ -272,7 +272,7 @@ const CardManagement = () => {
                 onChange={e => setSelectedEmployeeId(e.target.value)}
                 className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500"
               >
-                <option value="">Choose employeeâ€¦</option>
+                <option value="">Choose employee...</option>
                 {employees.map(emp => (
                   <option key={emp.id} value={emp.id}>
                     {emp.first_name} {emp.last_name} ({emp.email})
@@ -283,7 +283,7 @@ const CardManagement = () => {
             <div className="flex gap-3">
               <button onClick={() => setAssignOpen(false)} className="flex-1 text-sm border border-zinc-200 rounded-xl py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Cancel</button>
               <button onClick={handleAssignCard} disabled={assigning || !selectedEmployeeId} className="flex-1 bg-zinc-900 text-white text-sm rounded-xl py-2.5 hover:bg-zinc-700 transition-colors disabled:opacity-50">
-                {assigning ? "Savingâ€¦" : selectedCard?.assigned_user_id ? "Reassign" : "Assign"}
+                {assigning ? "Saving..." : selectedCard?.assigned_user_id ? "Reassign" : "Assign"}
               </button>
             </div>
           </motion.div>
