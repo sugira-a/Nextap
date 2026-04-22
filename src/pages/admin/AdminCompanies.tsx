@@ -1,50 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Building2, Plus, RefreshCw, Users, CreditCard, Eye } from "lucide-react";
 import { toast } from "sonner";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/api";
 
 type Company = {
-  id: string;
-  name: string;
-  slug: string;
-  plan: string;
-  status: string;
-  subscription_seats: number;
-  primary_color: string;
-  accent_color: string;
-  created_at: string;
-  stats?: {
-    employee_count: number;
-    card_count: number;
-    invitation_count: number;
-  };
+  id: string; name: string; slug: string; plan: string; status: string;
+  subscription_seats: number; primary_color: string; accent_color: string; created_at: string;
+  stats?: { employee_count: number; card_count: number; invitation_count: number };
 };
 
-type CompanyListResponse = {
-  companies: Company[];
-  total: number;
-};
-
-const toSlug = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
+const toSlug = (v: string) => v.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
 
 const AdminCompanies = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-
+  const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [plan, setPlan] = useState("starter");
@@ -52,11 +24,7 @@ const AdminCompanies = () => {
   const [adminLastName, setAdminLastName] = useState("Admin");
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
-
-  const [issuedCredentials, setIssuedCredentials] = useState<{
-    email: string;
-    temporaryPassword: string;
-  } | null>(null);
+  const [issuedCredentials, setIssuedCredentials] = useState<{ email: string; temporaryPassword: string } | null>(null);
 
   const authHeaders = useMemo(() => {
     const token = localStorage.getItem("access_token");
@@ -66,245 +34,143 @@ const AdminCompanies = () => {
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      const data = await apiRequest<CompanyListResponse>("/api/admin/companies", {
-        headers: authHeaders,
-      });
+      const data = await apiRequest<{ companies: Company[] }>("/api/admin/companies", { headers: authHeaders });
       setCompanies(data.companies || []);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load companies");
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed to load companies"); }
+    finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    fetchCompanies();
-  }, []);
+  useEffect(() => { fetchCompanies(); }, []);
 
-  const handleCreateCompany = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    if (!name.trim() || !slug.trim()) {
-      toast.error("Company name and slug are required");
-      return;
-    }
-
+  const handleCreateCompany = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !slug.trim()) { toast.error("Name and slug are required"); return; }
     try {
       setCreating(true);
-      const response = await apiRequest<{
-        message: string;
-        company_admin?: {
-          email: string;
-          temporary_password: string;
-        };
-      }>("/api/company/create", {
+      const res = await apiRequest<{ message: string; company_admin?: { email: string; temporary_password: string } }>("/api/company/create", {
         method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({
-          name: name.trim(),
-          slug: toSlug(slug),
-          plan,
-          admin_first_name: adminFirstName.trim(),
-          admin_last_name: adminLastName.trim(),
-          admin_email: adminEmail.trim() || undefined,
-          admin_password: adminPassword || undefined,
-        }),
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), slug: toSlug(slug), plan, admin_first_name: adminFirstName.trim(), admin_last_name: adminLastName.trim(), admin_email: adminEmail.trim() || undefined, admin_password: adminPassword || undefined }),
       });
-
-      toast.success("Company created successfully");
-      setName("");
-      setSlug("");
-      setPlan("starter");
-      setAdminFirstName("Company");
-      setAdminLastName("Admin");
-      setAdminEmail("");
-      setAdminPassword("");
-
-      if (response.company_admin?.email && response.company_admin?.temporary_password) {
-        setIssuedCredentials({
-          email: response.company_admin.email,
-          temporaryPassword: response.company_admin.temporary_password,
-        });
-      } else {
-        setIssuedCredentials(null);
-      }
-
+      toast.success("Company created");
+      setName(""); setSlug(""); setPlan("starter"); setAdminEmail(""); setAdminPassword("");
+      setIssuedCredentials(res.company_admin?.email ? { email: res.company_admin.email, temporaryPassword: res.company_admin.temporary_password } : null);
       await fetchCompanies();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create company");
-    } finally {
-      setCreating(false);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed to create company"); }
+    finally { setCreating(false); }
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="max-w-5xl mx-auto space-y-8 py-2"
+    >
+      {/* Header */}
+      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Companies</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Manage company workspaces and plans
-          </p>
+          <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Admin</p>
+          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Companies</h1>
+          <p className="text-sm text-zinc-400 mt-1">{companies.length} workspaces</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchCompanies}>
-          <RefreshCw className="w-4 h-4 mr-1.5" /> Refresh
-        </Button>
+        <button onClick={() => setShowForm(f => !f)} className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors">
+          {showForm ? "Cancel" : "Create Company"}
+        </button>
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Plus className="w-4 h-4 text-accent" />
-          <h2 className="font-heading font-semibold">Create Company</h2>
-        </div>
+      {/* Create form */}
+      {showForm && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-zinc-200 rounded-2xl p-6">
+          <p className="text-sm font-semibold text-zinc-900 mb-5">New Company</p>
+          <form onSubmit={handleCreateCompany} className="space-y-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="lg:col-span-2">
+                <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">Company Name</label>
+                <input type="text" value={name} onChange={e => { setName(e.target.value); if (!slug) setSlug(toSlug(e.target.value)); }} placeholder="Acme Corp" required
+                  className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-zinc-500 transition-colors" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">Slug</label>
+                <input type="text" value={slug} onChange={e => setSlug(toSlug(e.target.value))} placeholder="acme-corp" required
+                  className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-zinc-500 transition-colors" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">Plan</label>
+                <select value={plan} onChange={e => setPlan(e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-zinc-500 transition-colors">
+                  <option value="starter">Starter</option>
+                  <option value="professional">Professional</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">Admin First Name</label>
+                <input type="text" value={adminFirstName} onChange={e => setAdminFirstName(e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-zinc-500 transition-colors" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">Admin Last Name</label>
+                <input type="text" value={adminLastName} onChange={e => setAdminLastName(e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-zinc-500 transition-colors" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">Admin Email (optional)</label>
+                <input type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder="owner@acme.com" className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-zinc-500 transition-colors" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">Admin Password (optional)</label>
+                <input type="text" value={adminPassword} onChange={e => setAdminPassword(e.target.value)} placeholder="Auto-generate if blank" className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-zinc-500 transition-colors" />
+              </div>
+            </div>
+            <button type="submit" disabled={creating} className="bg-zinc-900 text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50">
+              {creating ? "Creatingâ€¦" : "Create Company"}
+            </button>
+          </form>
+          {issuedCredentials && (
+            <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-sm font-semibold text-emerald-800 mb-1">Admin Credentials Issued</p>
+              <p className="text-xs text-emerald-700">Email: <span className="font-mono font-medium">{issuedCredentials.email}</span></p>
+              <p className="text-xs text-emerald-700">Password: <span className="font-mono font-medium">{issuedCredentials.temporaryPassword}</span></p>
+            </div>
+          )}
+        </motion.div>
+      )}
 
-        <form onSubmit={handleCreateCompany} className="grid gap-4 md:grid-cols-4">
-          <div className="md:col-span-2">
-            <Label htmlFor="company-name">Company Name</Label>
-            <Input
-              id="company-name"
-              value={name}
-              onChange={(event) => {
-                const value = event.target.value;
-                setName(value);
-                if (!slug) {
-                  setSlug(toSlug(value));
-                }
-              }}
-              placeholder="Acme Corporation"
-              className="mt-1.5"
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="company-slug">Slug</Label>
-            <Input
-              id="company-slug"
-              value={slug}
-              onChange={(event) => setSlug(toSlug(event.target.value))}
-              placeholder="acme-corp"
-              className="mt-1.5"
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="company-plan">Plan</Label>
-            <select
-              id="company-plan"
-              value={plan}
-              onChange={(event) => setPlan(event.target.value)}
-              className="mt-1.5 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="starter">Starter</option>
-              <option value="professional">Professional</option>
-              <option value="enterprise">Enterprise</option>
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="company-admin-first-name">Admin First Name</Label>
-            <Input
-              id="company-admin-first-name"
-              value={adminFirstName}
-              onChange={(event) => setAdminFirstName(event.target.value)}
-              placeholder="Company"
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="company-admin-last-name">Admin Last Name</Label>
-            <Input
-              id="company-admin-last-name"
-              value={adminLastName}
-              onChange={(event) => setAdminLastName(event.target.value)}
-              placeholder="Admin"
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="company-admin-email">Admin Email (optional)</Label>
-            <Input
-              id="company-admin-email"
-              type="email"
-              value={adminEmail}
-              onChange={(event) => setAdminEmail(event.target.value)}
-              placeholder="owner@acme.com"
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="company-admin-password">Admin Password (optional)</Label>
-            <Input
-              id="company-admin-password"
-              type="text"
-              value={adminPassword}
-              onChange={(event) => setAdminPassword(event.target.value)}
-              placeholder="Leave blank to auto-generate"
-              className="mt-1.5"
-            />
-          </div>
-          <div className="md:col-span-4">
-            <Button type="submit" disabled={creating} className="bg-accent text-accent-foreground hover:bg-accent/90">
-              <Building2 className="w-4 h-4 mr-1.5" />
-              {creating ? "Creating..." : "Create Company"}
-            </Button>
-          </div>
-        </form>
-
-        {issuedCredentials && (
-          <div className="mt-5 rounded-lg border border-accent/30 bg-accent/5 p-4 text-sm">
-            <p className="font-medium text-foreground">Company Admin Credentials</p>
-            <p className="text-muted-foreground mt-1">Email: <span className="font-medium text-foreground">{issuedCredentials.email}</span></p>
-            <p className="text-muted-foreground">Password: <span className="font-medium text-foreground">{issuedCredentials.temporaryPassword}</span></p>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-border">
-          <h2 className="font-heading font-semibold">All Companies ({companies.length})</h2>
-        </div>
-
+      {/* Companies table */}
+      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         {loading ? (
-          <div className="p-6 text-sm text-muted-foreground">Loading companies...</div>
+          <div className="flex items-center justify-center h-40">
+            <div className="w-5 h-5 rounded-full border-2 border-zinc-900 border-t-transparent animate-spin" />
+          </div>
         ) : companies.length === 0 ? (
-          <div className="p-6 text-sm text-muted-foreground">No companies found.</div>
+          <div className="flex items-center justify-center h-40 text-sm text-zinc-400">No companies yet</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-secondary/30 border-b border-border">
-                  <th className="text-left px-4 py-3 text-xs uppercase tracking-wider text-muted-foreground">Company</th>
-                  <th className="text-left px-4 py-3 text-xs uppercase tracking-wider text-muted-foreground">Plan</th>
-                  <th className="text-left px-4 py-3 text-xs uppercase tracking-wider text-muted-foreground hidden md:table-cell">Seats</th>
-                  <th className="text-left px-4 py-3 text-xs uppercase tracking-wider text-muted-foreground hidden md:table-cell">Stats</th>
-                  <th className="text-right px-4 py-3 text-xs uppercase tracking-wider text-muted-foreground">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {companies.map((company) => (
-                  <tr key={company.id} className="border-b border-border last:border-0 hover:bg-secondary/20">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-foreground">{company.name}</p>
-                      <p className="text-xs text-muted-foreground">/{company.slug}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge className="capitalize bg-accent/10 text-accent border-0">{company.plan}</Badge>
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell text-foreground">{company.subscription_seats}</td>
-                    <td className="px-4 py-3 hidden md:table-cell text-xs text-muted-foreground">
-                      <span className="inline-flex items-center mr-3"><Users className="w-3.5 h-3.5 mr-1" />{company.stats?.employee_count ?? 0}</span>
-                      <span className="inline-flex items-center"><CreditCard className="w-3.5 h-3.5 mr-1" />{company.stats?.card_count ?? 0}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link to={`/admin/companies/${company.id}`}>
-                          <Eye className="w-3.5 h-3.5 mr-1.5" /> View
-                        </Link>
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="divide-y divide-zinc-100">
+            <div className="grid grid-cols-12 px-6 py-3 bg-zinc-50 border-b border-zinc-100">
+              <span className="col-span-4 text-xs font-medium text-zinc-400 uppercase tracking-wide">Company</span>
+              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Plan</span>
+              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Seats</span>
+              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Stats</span>
+              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide text-right">Action</span>
+            </div>
+            {companies.map(company => (
+              <div key={company.id} className="grid grid-cols-12 px-6 py-3.5 hover:bg-zinc-50 transition-colors items-center">
+                <div className="col-span-4">
+                  <p className="text-sm font-medium text-zinc-900">{company.name}</p>
+                  <p className="text-xs text-zinc-400">/{company.slug}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 capitalize">{company.plan}</span>
+                </div>
+                <div className="col-span-2 text-sm text-zinc-600">{company.subscription_seats}</div>
+                <div className="col-span-2 text-xs text-zinc-400">
+                  {company.stats?.employee_count ?? 0} users Â· {company.stats?.card_count ?? 0} cards
+                </div>
+                <div className="col-span-2 text-right">
+                  <Link to={`/admin/companies/${company.id}`} className="text-xs font-medium text-zinc-500 hover:text-zinc-900 border border-zinc-200 px-3 py-1.5 rounded-lg transition-colors">
+                    View â†’
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

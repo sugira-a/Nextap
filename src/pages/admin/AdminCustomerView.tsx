@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Save, RefreshCw, UserCircle2, ShieldCheck, Link2, BriefcaseBusiness } from "lucide-react";
 import { toast } from "sonner";
 
 import { apiRequest } from "@/lib/api";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 
 type CustomerDetails = {
   customer: {

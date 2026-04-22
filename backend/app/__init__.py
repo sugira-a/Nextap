@@ -21,89 +21,16 @@ def create_app(config_name='development'):
     # Initialize extensions
     init_extensions(app)
     
-    # Root endpoint
-    @app.route('/')
-    @app.route('/<path:path>')
-    def root(path=''):
-        """Serve the frontend and let API routes handle /api paths."""
-        if path.startswith('api/'):
-            return jsonify({
-                'api': 'NexTap B2B Platform',
-                'version': '1.0',
-                'status': 'running',
-                'description': 'Digital business card platform with B2B workspaces'
-            }), 200
-
-        if path:
-            candidate = os.path.join(frontend_dist_dir, path)
-            if os.path.isfile(candidate):
-                return send_from_directory(frontend_dist_dir, path)
-
-        index_path = os.path.join(frontend_dist_dir, 'index.html')
-        if os.path.isfile(index_path):
-            return send_from_directory(frontend_dist_dir, 'index.html')
-
-        return jsonify({
-            'api': 'NexTap B2B Platform',
-            'version': '1.0',
-            'status': 'running',
-            'description': 'Digital business card platform with B2B workspaces'
-        }), 200
+    # Register blueprints FIRST so their routes take priority
+    register_blueprints(app)
+    
+    # Root handler via error handler - let 404s serve SPA
     
     # Health check endpoint  
     @app.route('/health')
     def health():
         """Health check"""
         return jsonify({'status': 'ok'}), 200
-    
-    # API info endpoints (compatibility)
-    @app.route('/api')
-    @app.route('/api/info')
-    def api_info():
-        """API endpoints information"""
-        return jsonify({
-            'endpoints': {
-                'auth': [
-                    'POST /api/auth/register',
-                    'POST /api/auth/login',
-                    'GET /api/auth/me',
-                    'POST /api/auth/logout'
-                ],
-                'profile': [
-                    'GET /api/profile/public/<slug>',
-                    'GET /api/profile/mine',
-                    'PUT /api/profile/mine'
-                ],
-                'card': [
-                    'GET /api/card/<code>',
-                    'POST /api/card/<code>/claim',
-                    'POST /api/card/<code>/assign'
-                ],
-                'company': [
-                    'POST /api/company',
-                    'GET /api/company/<id>',
-                    'PUT /api/company/<id>',
-                    'GET /api/company/<id>/members'
-                ],
-                'employee': [
-                    'GET /api/employee',
-                    'GET /api/employee/<id>',
-                    'PUT /api/employee/<id>'
-                ],
-                'invitation': [
-                    'POST /api/invitation/send',
-                    'GET /api/invitation',
-                    'POST /api/invitation/<id>/accept'
-                ],
-                'analytics': [
-                    'GET /api/analytics/company',
-                    'GET /api/analytics/user'
-                ]
-            }
-        }), 200
-    
-    # Register blueprints
-    register_blueprints(app)
     
     # Register error handlers
     register_error_handlers(app)
@@ -117,6 +44,8 @@ def create_app(config_name='development'):
             if _is_sqlite_database():
                 ensure_profile_schema()
                 ensure_card_schema()
+                ensure_shared_contact_schema()
+                ensure_card_design_schema()
             seed_default_admin()
             seed_default_company()
     
@@ -324,9 +253,25 @@ def ensure_card_schema():
     db.session.commit()
 
 
+def ensure_shared_contact_schema():
+    """Create shared_contact table columns for existing SQLite databases."""
+    if not _is_sqlite_database():
+        return
+    from .models import SharedContact  # noqa: F401 — ensures table is registered
+    db.create_all()
+
+
+def ensure_card_design_schema():
+    """Create card_design table for existing SQLite databases."""
+    if not _is_sqlite_database():
+        return
+    from .models import CardDesign  # noqa: F401 — ensures table is registered
+    db.create_all()
+
+
 def register_blueprints(app):
     """Register all route blueprints"""
-    from .routes import auth, profile, card, company, employee, invitation, department, analytics, admin
+    from .routes import auth, profile, card, company, employee, invitation, department, analytics, admin, design
     
     # Register API blueprints
     app.register_blueprint(auth.bp)
@@ -338,13 +283,38 @@ def register_blueprints(app):
     app.register_blueprint(department.bp)
     app.register_blueprint(analytics.bp)
     app.register_blueprint(admin.bp)
+    app.register_blueprint(design.bp)
 
 
 def register_error_handlers(app):
     """Register error handlers"""
+    from flask import request
     
     @app.errorhandler(404)
     def not_found(error):
+        # For API paths, return proper API 404 error
+        if request.path.startswith('/api/'):
+            return {
+                'error': 'Not Found',
+                'message': 'The requested resource was not found'
+            }, 404
+        
+        # For non-API paths, serve frontend files or index.html for SPA routing
+        frontend_dist_dir = os.getenv(
+            'FRONTEND_DIST_DIR',
+            os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'dist'))
+        )
+        
+        # Try to serve static file
+        candidate = os.path.join(frontend_dist_dir, request.path.lstrip('/'))
+        if os.path.isfile(candidate):
+            return send_from_directory(frontend_dist_dir, request.path.lstrip('/'))
+        
+        # Serve index.html for SPA routing
+        index_path = os.path.join(frontend_dist_dir, 'index.html')
+        if os.path.isfile(index_path):
+            return send_from_directory(frontend_dist_dir, 'index.html')
+
         return {
             'error': 'Not Found',
             'message': 'The requested resource was not found'

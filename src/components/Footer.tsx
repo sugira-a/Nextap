@@ -16,24 +16,24 @@ const Footer = () => (
         <div>
           <h4 className="font-heading font-semibold text-sm mb-4">Product</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
-            <li><a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a></li>
-            <li><a href="#" className="hover:text-foreground transition-colors">For Teams</a></li>
+            <li><Link to="/features" className="hover:text-foreground transition-colors">Features</Link></li>
+            <li><Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
+            <li><Link to="/for-teams" className="hover:text-foreground transition-colors">For Teams</Link></li>
           </ul>
         </div>
         <div>
           <h4 className="font-heading font-semibold text-sm mb-4">Company</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li><a href="#" className="hover:text-foreground transition-colors">About</a></li>
-            <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
-            <li><a href="#" className="hover:text-foreground transition-colors">Contact</a></li>
+            <li><Link to="/about" className="hover:text-foreground transition-colors">About</Link></li>
+            <li><Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
+            <li><Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link></li>
           </ul>
         </div>
         <div>
           <h4 className="font-heading font-semibold text-sm mb-4">Legal</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li><a href="#" className="hover:text-foreground transition-colors">Privacy</a></li>
-            <li><a href="#" className="hover:text-foreground transition-colors">Terms</a></li>
+            <li><Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link></li>
+            <li><Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link></li>
           </ul>
         </div>
       </div>

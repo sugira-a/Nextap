@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Save, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { apiRequest, apiRequestWithFallback } from "@/lib/api";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 
 type CompanyResponse = {
   company: {
@@ -197,134 +192,167 @@ const AdminCompanyView = () => {
   };
 
   if (loading) {
-    return <Card className="p-8 text-center text-muted-foreground">Loading company...</Card>;
+    return (
+      <div className="flex items-center justify-center h-40">
+        <div className="w-5 h-5 rounded-full border-2 border-zinc-900 border-t-transparent animate-spin" />
+      </div>
+    );
   }
 
   if (!data) {
-    return <Card className="p-8 text-center text-muted-foreground">Company not found</Card>;
+    return <div className="bg-white border border-zinc-200 rounded-2xl p-8 text-center text-sm text-zinc-400">Company not found</div>;
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <Button variant="outline" size="sm" asChild>
-          <Link to="/admin/companies">
-            <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back to Companies
-          </Link>
-        </Button>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load}>
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
-          </Button>
-          <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={remove} disabled={deleting}>
-            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> {deleting ? "Deleting..." : "Delete"}
-          </Button>
-          <Button size="sm" onClick={save} disabled={saving}>
-            <Save className="w-3.5 h-3.5 mr-1.5" /> {saving ? "Saving..." : "Save"}
-          </Button>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="max-w-5xl mx-auto space-y-8 py-2"
+    >
+      {/* Header */}
+      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
+        <div className="flex items-center gap-4">
+          {form.logo_url ? (
+            <img src={form.logo_url} alt="Logo" className="h-14 w-14 rounded-xl object-cover border border-zinc-200" />
+          ) : (
+            <div className="h-14 w-14 rounded-xl bg-zinc-100 border border-zinc-200 flex items-center justify-center text-xs text-zinc-400 font-medium">Logo</div>
+          )}
+          <div>
+            <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-0.5">Admin Â· Companies</p>
+            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">{data.company.name}</h1>
+            <p className="text-sm text-zinc-400 mt-0.5 font-mono">/{data.company.slug}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${data.company.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{data.company.status}</span>
+          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-500 capitalize">{data.company.plan}</span>
+          <Link to="/admin/companies" className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">â† Back</Link>
+          <button onClick={load} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Refresh</button>
+          <button onClick={remove} disabled={deleting} className="text-sm border border-red-200 rounded-xl px-4 py-2.5 text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50">
+            {deleting ? "Deletingâ€¦" : "Delete"}
+          </button>
+          <button onClick={save} disabled={saving} className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50">
+            {saving ? "Savingâ€¦" : "Save"}
+          </button>
         </div>
       </div>
 
-      <Card className="p-6">
-        <div className="flex items-start gap-4">
-          {form.logo_url ? (
-            <img src={form.logo_url} alt="Company logo" className="h-16 w-16 rounded-lg object-cover border border-border" />
-          ) : (
-            <div className="h-16 w-16 rounded-lg border border-border flex items-center justify-center bg-secondary text-muted-foreground text-xs">No logo</div>
-          )}
-          <div className="space-y-1">
-            <h1 className="font-heading text-2xl font-bold text-foreground">{data.company.name}</h1>
-            <p className="text-sm text-muted-foreground">/{data.company.slug}</p>
-            <div className="flex gap-2 text-xs">
-              <Badge className="capitalize">{data.company.plan}</Badge>
-              <Badge variant="secondary" className="capitalize">{data.company.status}</Badge>
-            </div>
-          </div>
-        </div>
-      </Card>
+      {/* Stats strip */}
+      <div className="grid grid-cols-5 gap-px bg-zinc-200 rounded-2xl overflow-hidden border border-zinc-200">
+        {[
+          { label: "Employees", value: data.stats.employee_count },
+          { label: "Cards", value: data.stats.card_count },
+          { label: "Active Cards", value: data.stats.active_cards },
+          { label: "Claimed", value: data.stats.claimed_cards },
+          { label: "Invitations", value: data.stats.invitation_count },
+        ].map((s, i) => (
+          <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07, duration: 0.3 }} className="bg-white px-5 py-6">
+            <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium">{s.label}</p>
+            <p className="text-2xl font-bold text-zinc-900 tracking-tight mt-1">{s.value}</p>
+          </motion.div>
+        ))}
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="p-6 lg:col-span-2 space-y-4">
-          <h2 className="font-heading font-semibold">Workspace Settings</h2>
+        {/* Edit form */}
+        <div className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 space-y-5">
+          <p className="text-sm font-semibold text-zinc-900 border-b border-zinc-100 pb-3">Workspace Settings</p>
 
-          <Input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="Company Name" />
-          <Input value={form.logo_url} onChange={(e) => setForm((p) => ({ ...p, logo_url: e.target.value }))} placeholder="Logo URL" />
-
-          <div className="grid sm:grid-cols-2 gap-3">
-            <select value={form.plan} onChange={(e) => setForm((p) => ({ ...p, plan: e.target.value }))} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-              <option value="starter">starter</option>
-              <option value="professional">professional</option>
-              <option value="enterprise">enterprise</option>
-            </select>
-            <Input type="number" min={1} value={form.subscription_seats} onChange={(e) => setForm((p) => ({ ...p, subscription_seats: Number(e.target.value) || 1 }))} placeholder="Seats" />
+          <div>
+            <label className="text-xs text-zinc-400 mb-1.5 block">Company Name</label>
+            <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" />
+          </div>
+          <div>
+            <label className="text-xs text-zinc-400 mb-1.5 block">Logo URL</label>
+            <input value={form.logo_url} onChange={e => setForm(p => ({ ...p, logo_url: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" placeholder="https://â€¦" />
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
-            <div className="flex items-center gap-2">
-              <input type="color" value={form.primary_color} onChange={(e) => setForm((p) => ({ ...p, primary_color: e.target.value }))} className="h-10 w-14 rounded border border-input" />
-              <Input value={form.primary_color} onChange={(e) => setForm((p) => ({ ...p, primary_color: e.target.value }))} />
+            <div>
+              <label className="text-xs text-zinc-400 mb-1.5 block">Plan</label>
+              <select value={form.plan} onChange={e => setForm(p => ({ ...p, plan: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors">
+                <option value="starter">starter</option>
+                <option value="professional">professional</option>
+                <option value="enterprise">enterprise</option>
+              </select>
             </div>
-            <div className="flex items-center gap-2">
-              <input type="color" value={form.accent_color} onChange={(e) => setForm((p) => ({ ...p, accent_color: e.target.value }))} className="h-10 w-14 rounded border border-input" />
-              <Input value={form.accent_color} onChange={(e) => setForm((p) => ({ ...p, accent_color: e.target.value }))} />
+            <div>
+              <label className="text-xs text-zinc-400 mb-1.5 block">Seats</label>
+              <input type="number" min={1} value={form.subscription_seats} onChange={e => setForm(p => ({ ...p, subscription_seats: Number(e.target.value) || 1 }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" />
             </div>
           </div>
-        </Card>
 
-        <Card className="p-6 space-y-3">
-          <h2 className="font-heading font-semibold">Workspace Stats</h2>
-          <div className="text-sm">
-            <p className="text-muted-foreground">Employees</p>
-            <p className="font-medium">{data.stats.employee_count}</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-zinc-400 mb-1.5 block">Primary Color</label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={form.primary_color} onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))} className="h-9 w-12 rounded-lg border border-zinc-200 cursor-pointer" />
+                <input value={form.primary_color} onChange={e => setForm(p => ({ ...p, primary_color: e.target.value }))} className="flex-1 border border-zinc-200 rounded-xl px-3 py-2 text-sm font-mono outline-none focus:border-zinc-500 transition-colors" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-zinc-400 mb-1.5 block">Accent Color</label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={form.accent_color} onChange={e => setForm(p => ({ ...p, accent_color: e.target.value }))} className="h-9 w-12 rounded-lg border border-zinc-200 cursor-pointer" />
+                <input value={form.accent_color} onChange={e => setForm(p => ({ ...p, accent_color: e.target.value }))} className="flex-1 border border-zinc-200 rounded-xl px-3 py-2 text-sm font-mono outline-none focus:border-zinc-500 transition-colors" />
+              </div>
+            </div>
           </div>
-          <div className="text-sm">
-            <p className="text-muted-foreground">Cards</p>
-            <p className="font-medium">{data.stats.card_count}</p>
+        </div>
+
+        {/* Sidebar */}
+        <div className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-4">
+          <p className="text-sm font-semibold text-zinc-900 border-b border-zinc-100 pb-3">Details</p>
+          <div className="space-y-3 text-sm">
+            <div><p className="text-xs text-zinc-400 mb-0.5">Created</p><p className="font-medium text-zinc-900">{data.company.created_at ? new Date(data.company.created_at).toLocaleDateString() : "â€”"}</p></div>
+            <div><p className="text-xs text-zinc-400 mb-0.5">Slug</p><p className="font-mono text-zinc-900">/{data.company.slug}</p></div>
+            <div className="pt-2">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-4 w-4 rounded-sm border border-zinc-200" style={{ background: form.primary_color }} />
+                <span className="text-xs text-zinc-400">Primary</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 rounded-sm border border-zinc-200" style={{ background: form.accent_color }} />
+                <span className="text-xs text-zinc-400">Accent</span>
+              </div>
+            </div>
           </div>
-          <div className="text-sm">
-            <p className="text-muted-foreground">Active Cards</p>
-            <p className="font-medium">{data.stats.active_cards}</p>
-          </div>
-          <div className="text-sm">
-            <p className="text-muted-foreground">Claimed Cards</p>
-            <p className="font-medium">{data.stats.claimed_cards}</p>
-          </div>
-          <div className="text-sm">
-            <p className="text-muted-foreground">Pending Invitations</p>
-            <p className="font-medium">{data.stats.invitation_count}</p>
-          </div>
-          <div className="text-sm">
-            <p className="text-muted-foreground">Created</p>
-            <p className="font-medium">{data.company.created_at ? new Date(data.company.created_at).toLocaleString() : "-"}</p>
-          </div>
-        </Card>
+        </div>
       </div>
 
-      <Card className="p-6">
-        <h2 className="font-heading font-semibold mb-4">Team Members</h2>
+      {/* Team members */}
+      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-100">
+          <p className="text-sm font-semibold text-zinc-900">Team Members <span className="text-zinc-400 font-normal">({data.members.length})</span></p>
+        </div>
         {data.members.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No members found for this company.</p>
+          <div className="flex items-center justify-center h-32 text-sm text-zinc-400">No members found</div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {data.members.map((member) => (
-              <div key={member.id} className="rounded-lg border border-border p-3 flex items-center gap-3">
+          <div className="divide-y divide-zinc-100">
+            {data.members.map(member => (
+              <div key={member.id} className="px-6 py-3.5 hover:bg-zinc-50 transition-colors flex items-center gap-3">
                 {member.profile?.photo_url ? (
-                  <img src={member.profile.photo_url} alt={`${member.first_name} ${member.last_name}`} className="h-10 w-10 rounded-full object-cover border border-border" />
+                  <img src={member.profile.photo_url} alt="" className="h-9 w-9 rounded-full object-cover border border-zinc-200 shrink-0" />
                 ) : (
-                  <div className="h-10 w-10 rounded-full bg-secondary border border-border flex items-center justify-center text-xs text-muted-foreground">
+                  <div className="h-9 w-9 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center text-xs font-bold text-zinc-500 shrink-0">
                     {member.first_name[0]}{member.last_name[0]}
                   </div>
                 )}
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{member.first_name} {member.last_name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{member.role.replace("_", " ")} · {member.status}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-zinc-900 truncate">{member.first_name} {member.last_name}</p>
+                  <p className="text-xs text-zinc-400 truncate">{member.email}</p>
                 </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-zinc-500 capitalize">{member.role.replace("_", " ")}</span>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${member.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{member.status}</span>
+                </div>
+                <Link to={`/admin/users/${member.id}`} className="text-xs text-zinc-400 hover:text-zinc-700 border border-zinc-200 px-2.5 py-1 rounded-lg transition-colors">View</Link>
               </div>
             ))}
           </div>
         )}
-      </Card>
+      </div>
     </motion.div>
   );
 };

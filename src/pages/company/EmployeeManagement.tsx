@@ -1,253 +1,205 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, MoreVertical, Mail, Trash2 } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/api";
 import { getCurrentCompanyId } from "@/lib/auth-context";
 
+type Employee = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  status: string;
+  card?: { code: string } | null;
+};
+
 const EmployeeManagement = () => {
-  const [employees, setEmployees] = useState([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    fetchEmployees();
-  }, [search, status, page]);
+  useEffect(() => { fetchEmployees(); }, [search, status, page]);
 
   const fetchEmployees = async () => {
     try {
       setLoading(true);
       const companyId = await getCurrentCompanyId();
-      const params = new URLSearchParams({
-        page: page.toString(),
-        per_page: "20",
-        ...(search && { search }),
-        ...(status !== "all" && { status }),
-      });
-
-      const data = await apiRequest<{ employees: any[]; total: number }>(`/api/company/${companyId}/employees?${params}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
+      const params = new URLSearchParams({ page: page.toString(), per_page: "20", ...(search && { search }), ...(status !== "all" && { status }) });
+      const data = await apiRequest<{ employees: Employee[]; total: number }>(`/api/company/${companyId}/employees?${params}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
       });
       setEmployees(data.employees);
       setTotal(data.total);
-    } catch (error) {
-      toast.error("Failed to load employees");
-    } finally {
-      setLoading(false);
-    }
+    } catch { toast.error("Failed to load employees"); }
+    finally { setLoading(false); }
   };
 
-  const handleRemoveEmployee = async (employeeId: string) => {
-    if (!confirm("Are you sure? This action cannot be undone.")) return;
-
+  const handleRemoveEmployee = async (id: string) => {
+    if (!window.confirm("Remove this employee? This cannot be undone.")) return;
     try {
       const companyId = await getCurrentCompanyId();
-      await apiRequest<{ message: string }>(`/api/company/${companyId}/employees/${employeeId}/remove`, {
+      await apiRequest<any>(`/api/company/${companyId}/employees/${id}/remove`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
       });
       toast.success("Employee removed");
       fetchEmployees();
-    } catch (error) {
-      toast.error("Error removing employee");
-    }
+    } catch { toast.error("Error removing employee"); }
   };
 
-  const handleUpdateStatus = async (employeeId: string, newStatus: string) => {
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
       const companyId = await getCurrentCompanyId();
-      await apiRequest<{ message: string }>(`/api/company/${companyId}/employees/${employeeId}/update`, {
+      await apiRequest<any>(`/api/company/${companyId}/employees/${id}/update`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}` },
         body: JSON.stringify({ status: newStatus }),
       });
-      toast.success("Employee status updated");
+      toast.success("Status updated");
       fetchEmployees();
-    } catch (error) {
-      toast.error("Error updating status");
-    }
+    } catch { toast.error("Error updating status"); }
   };
 
-  const statusColor = {
-    active: "text-green-500 bg-green-50",
-    inactive: "text-gray-500 bg-gray-50",
-    suspended: "text-red-500 bg-red-50",
-  };
+  const totalPages = Math.ceil(total / 20);
 
   return (
-    <div className="p-6 space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="max-w-5xl mx-auto space-y-8 py-2"
+    >
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="font-heading font-bold text-3xl mb-2">Employees</h1>
-            <p className="text-muted-foreground">Manage your team members and assignments</p>
-          </div>
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
-            <a href="/company/invitations">
-              <Plus className="w-4 h-4 mr-2" />
-              Invite Employee
-            </a>
-          </Button>
+      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Company</p>
+          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Employees</h1>
+          <p className="text-sm text-zinc-400 mt-1">{total} members</p>
         </div>
-      </motion.div>
+        <Link
+          to="/company/invitations"
+          className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors"
+        >
+          Invite Employee
+        </Link>
+      </div>
 
       {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex gap-4 flex-col sm:flex-row"
-      >
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search employees..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="pl-10"
-          />
+      <div className="flex gap-3">
+        <input
+          type="text"
+          placeholder="Search employeesâ€¦"
+          value={search}
+          onChange={e => { setSearch(e.target.value); setPage(1); }}
+          className="flex-1 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
+        />
+        <div className="flex gap-1.5 bg-zinc-100 rounded-lg p-1">
+          {["all", "active", "inactive", "suspended"].map(s => (
+            <button
+              key={s}
+              onClick={() => { setStatus(s); setPage(1); }}
+              className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors capitalize ${
+                status === s ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
         </div>
-        <select
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-          className="px-4 py-2 border border-border rounded-lg bg-card text-foreground"
-        >
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="suspended">Suspended</option>
-        </select>
-      </motion.div>
+      </div>
 
-      {/* Employees Table */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Name</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Email</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Role</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Card</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employees.map((employee) => (
-                  <tr key={employee.id} className="border-b border-border hover:bg-accent/5 transition">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-medium">
-                          {employee.first_name} {employee.last_name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">ID: {employee.id.slice(0, 8)}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm">{employee.email}</td>
-                    <td className="px-6 py-4 text-sm capitalize">{employee.role}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          statusColor[employee.status as keyof typeof statusColor] || "text-gray-500 bg-gray-50"
-                        }`}
-                      >
-                        {employee.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {employee.card ? (
-                        <span className="font-mono text-xs bg-accent/10 px-2 py-1 rounded">{employee.card.code}</span>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">Unassigned</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => {
-                            navigator.clipboard.writeText(employee.email);
-                            toast.success("Employee email copied");
-                          }}>
-                            Copy Email
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleUpdateStatus(
-                                employee.id,
-                                employee.status === "active" ? "inactive" : "active"
-                              )
-                            }
-                          >
-                            {employee.status === "active" ? "Deactivate" : "Activate"}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleRemoveEmployee(employee.id)}>
-                            <Trash2 className="w-4 h-4 mr-2 text-red-500" />
-                            <span className="text-red-500">Remove</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {employees.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No employees found</p>
-              </div>
-            )}
+      {/* Table */}
+      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center h-40">
+            <div className="w-5 h-5 rounded-full border-2 border-zinc-900 border-t-transparent animate-spin" />
           </div>
-        </Card>
-      </motion.div>
+        ) : employees.length > 0 ? (
+          <div className="divide-y divide-zinc-100">
+            <div className="grid grid-cols-12 px-6 py-3 bg-zinc-50 border-b border-zinc-100">
+              <span className="col-span-3 text-xs font-medium text-zinc-400 uppercase tracking-wide">Name</span>
+              <span className="col-span-3 text-xs font-medium text-zinc-400 uppercase tracking-wide">Email</span>
+              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Role</span>
+              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Status</span>
+              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide text-right">Card / Action</span>
+            </div>
+            {employees.map(emp => (
+              <div key={emp.id} className="grid grid-cols-12 px-6 py-3.5 hover:bg-zinc-50 transition-colors items-center">
+                <div className="col-span-3">
+                  <p className="text-sm font-medium text-zinc-900">{emp.first_name} {emp.last_name}</p>
+                  <p className="text-xs text-zinc-400">{emp.id.slice(0, 8)}</p>
+                </div>
+                <div className="col-span-3 text-sm text-zinc-600 truncate">{emp.email}</div>
+                <div className="col-span-2 text-sm text-zinc-500 capitalize">{emp.role?.replace("_", " ")}</div>
+                <div className="col-span-2">
+                  <select
+                    value={emp.status}
+                    onChange={e => handleUpdateStatus(emp.id, e.target.value)}
+                    className={`text-xs font-medium px-2 py-1 rounded-full border-0 outline-none cursor-pointer ${
+                      emp.status === "active" ? "bg-emerald-50 text-emerald-700" :
+                      emp.status === "suspended" ? "bg-red-50 text-red-600" :
+                      "bg-zinc-100 text-zinc-500"
+                    }`}
+                  >
+                    <option value="active">active</option>
+                    <option value="inactive">inactive</option>
+                    <option value="suspended">suspended</option>
+                  </select>
+                </div>
+                <div className="col-span-2 flex items-center justify-end gap-3">
+                  {emp.card ? (
+                    <span className="font-mono text-xs bg-zinc-100 text-zinc-700 px-2 py-1 rounded-md">{emp.card.code}</span>
+                  ) : (
+                    <span className="text-xs text-zinc-400">No card</span>
+                  )}
+                  <button
+                    onClick={() => handleRemoveEmployee(emp.id)}
+                    className="text-xs text-zinc-400 hover:text-red-600 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-40 text-sm text-zinc-400">
+            <p>No employees found</p>
+            <Link to="/company/invitations" className="mt-2 text-zinc-600 underline underline-offset-2 text-xs hover:text-zinc-900">
+              Invite one now
+            </Link>
+          </div>
+        )}
+      </div>
 
       {/* Pagination */}
-      {total > 20 && (
-        <div className="flex justify-center gap-2">
-          <Button variant="outline" disabled={page === 1} onClick={() => setPage(page - 1)}>
-            Previous
-          </Button>
-          <span className="px-4 py-2 text-sm">
-            Page {page} of {Math.ceil(total / 20)}
-          </span>
-          <Button variant="outline" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage(page + 1)}>
-            Next
-          </Button>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-zinc-400">{total} total Â· page {page} of {totalPages}</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="text-sm px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40 transition-colors"
+            >
+              Prev
+            </button>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="text-sm px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40 transition-colors"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

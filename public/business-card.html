@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexTap – Business Card</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0e1a;
+      --surface:   #111827;
+      --card:      #141d2e;
+      --accent:    #00d4aa;
+      --accent2:   #0ea5e9;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --border:    rgba(255,255,255,0.07);
+      --glow:      rgba(0, 212, 170, 0.18);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px;
+      gap: 32px;
+    }
+
+    /* ── Page heading ── */
+    .page-label {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    /* ── Card wrapper ── */
+    .card-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* animated gradient border */
+    .card-wrap::before {
+      content: '';
+      position: absolute;
+      inset: -1.5px;
+      border-radius: 26px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent));
+      background-size: 300% 300%;
+      animation: borderPulse 5s ease infinite;
+      z-index: 0;
+      opacity: 0.55;
+    }
+
+    @keyframes borderPulse {
+      0%, 100% { background-position: 0% 50%; }
+      50%       { background-position: 100% 50%; }
+    }
+
+    /* ── Main card ── */
+    .card {
+      position: relative;
+      z-index: 1;
+      background: var(--card);
+      border-radius: 24px;
+      padding: 36px 32px 28px;
+      overflow: hidden;
+    }
+
+    /* decorative blobs */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,212,170,0.12), transparent 70%);
+      pointer-events: none;
+    }
+    .card::after {
+      content: '';
+      position: absolute;
+      bottom: -50px; left: -50px;
+      width: 180px; height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(14,165,233,0.10), transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Top row: logo + NFC badge ── */
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 18px rgba(0,212,170,0.35);
+    }
+    .logo-text {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .logo-text span { color: var(--accent); }
+
+    .nfc-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0,212,170,0.10);
+      border: 1px solid rgba(0,212,170,0.25);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .nfc-badge svg { width: 13px; height: 13px; }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0 -4px 24px;
+    }
+
+    /* ── Tagline ── */
+    .tagline {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.25;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+    .tagline em {
+      font-style: normal;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .sub-tagline {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 400;
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+
+    /* ── Contact grid ── */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      transition: border-color 0.2s;
+    }
+    .contact-item:hover { border-color: rgba(0,212,170,0.3); }
+
+    .contact-icon {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      background: rgba(0,212,170,0.10);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .contact-icon svg { width: 14px; height: 14px; stroke: var(--accent); }
+
+    .contact-info { overflow: hidden; }
+    .contact-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1px;
+    }
+    .contact-value {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Bottom row: socials + QR ── */
+    .card-bottom {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .socials { display: flex; flex-direction: column; gap: 7px; }
+
+    .social-row { display: flex; gap: 7px; flex-wrap: wrap; }
+
+    .social-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 11px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      transition: color 0.2s, border-color 0.2s;
+      text-decoration: none;
+    }
+    .social-pill:hover { color: var(--accent); border-color: rgba(0,212,170,0.3); }
+    .social-pill svg { width: 12px; height: 12px; }
+
+    /* ── QR Code placeholder ── */
+    .qr-box {
+      flex-shrink: 0;
+      width: 76px; height: 76px;
+      background: #fff;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .qr-box svg { width: 68px; height: 68px; }
+
+    /* ── Chips strip (features) ── */
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .chip {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      background: rgba(0,212,170,0.07);
+      border: 1px solid rgba(0,212,170,0.18);
+      border-radius: 20px;
+      padding: 3px 9px;
+      color: var(--accent);
+    }
+
+    /* ── Print / Download button ── */
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #0a0e1a;
+      box-shadow: 0 4px 18px rgba(0,212,170,0.3);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 24px rgba(0,212,170,0.45); }
+
+    .btn-ghost {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: rgba(0,212,170,0.3); color: var(--accent); }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .actions { display: none; }
+      .card-wrap::before { display: none; }
+      .card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px; }
+      .tagline, .logo-text { color: #0f172a; }
+      .tagline em { -webkit-text-fill-color: #00b48a; }
+      .logo-text span { color: #00b48a; }
+      .contact-item, .social-pill { background: #f8fafc; border-color: #e2e8f0; }
+      .contact-label, .muted { color: #64748b; }
+      .contact-value { color: #0f172a; }
+      .chip { background: #f0fdf9; border-color: #a7f3d0; color: #059669; }
+      .nfc-badge { background: #f0fdf9; border-color: #a7f3d0; color: #059669; }
+      .sub-tagline { color: #64748b; }
+    }
+  </style>
+</head>
+<body>
+
+  <p class="page-label">NexTap — Digital Business Card</p>
+
+  <div class="card-wrap">
+    <div class="card">
+
+      <!-- Top row -->
+      <div class="card-top">
+        <div class="logo">
+          <div class="logo-icon">⚡</div>
+          <span class="logo-text">Nex<span>Tap</span></span>
+        </div>
+        <div class="nfc-badge">
+          <!-- NFC wave icon -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M8.5 8.5A5 5 0 0 1 15.5 15.5"/>
+            <path d="M5 5a9 9 0 0 1 14 14"/>
+            <circle cx="12" cy="19" r="1" fill="currentColor"/>
+          </svg>
+          NFC Enabled
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Tagline -->
+      <p class="tagline">Tap. Share.<br /><em>Connect instantly.</em></p>
+      <p class="sub-tagline">Your digital business card, powered by NFC. Share your contact info,<br />socials & portfolio with a single tap — no app required.</p>
+
+      <!-- Contact info -->
+      <div class="contact-grid">
+        <div class="contact-item">
+          <div class="contact-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+          </div>
+          <div class="contact-info">
+            <p class="contact-label">Email</p>
+            <p class="contact-value">hello@nextap.app</p>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10A15.3 15.3 0 0 1 8 12 15.3 15.3 0 0 1 12 2z"/>
+            </svg>
+          </div>
+          <div class="contact-info">
+            <p class="contact-label">Website</p>
+            <p class="contact-value">www.nextap.app</p>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.08 3.4a2 2 0 0 1 1.99-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 5.99 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16z"/>
+            </svg>
+          </div>
+          <div class="contact-info">
+            <p class="contact-label">Phone</p>
+            <p class="contact-value">+1 (800) NEXTAP</p>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          </div>
+          <div class="contact-info">
+            <p class="contact-label">Location</p>
+            <p class="contact-value">Worldwide 🌍</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features chips -->
+      <div class="chips" style="margin-bottom:22px;">
+        <span class="chip">NFC Technology</span>
+        <span class="chip">Digital Profiles</span>
+        <span class="chip">Analytics</span>
+        <span class="chip">Team Cards</span>
+        <span class="chip">Instant Share</span>
+      </div>
+
+      <!-- Bottom row: socials + QR -->
+      <div class="card-bottom">
+        <div class="socials">
+          <div class="social-row">
+            <a href="#" class="social-pill">
+              <!-- Twitter/X -->
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.854L2.13 2.25h6.99l4.256 5.638 5.869-5.638Zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              @nextap_app
+            </a>
+            <a href="#" class="social-pill">
+              <!-- LinkedIn -->
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452H17.06v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.691V9h3.197v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a1.857 1.857 0 0 1 0-3.712 1.857 1.857 0 0 1 0 3.712zm1.602 13.019H3.733V9h3.206v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              LinkedIn
+            </a>
+          </div>
+          <div class="social-row">
+            <a href="#" class="social-pill">
+              <!-- Instagram -->
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+              @nextap
+            </a>
+            <a href="#" class="social-pill">
+              <!-- GitHub -->
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+              GitHub
+            </a>
+          </div>
+        </div>
+
+        <!-- QR code (SVG pattern — replace src with real QR) -->
+        <div class="qr-box" title="Scan to visit nextap.app">
+          <svg viewBox="0 0 37 37" xmlns="http://www.w3.org/2000/svg">
+            <!-- Finder pattern TL -->
+            <rect x="1" y="1" width="9" height="9" rx="1.5" fill="#0a0e1a"/>
+            <rect x="2.5" y="2.5" width="6" height="6" rx="1" fill="white"/>
+            <rect x="3.5" y="3.5" width="4" height="4" rx="0.5" fill="#0a0e1a"/>
+            <!-- Finder pattern TR -->
+            <rect x="27" y="1" width="9" height="9" rx="1.5" fill="#0a0e1a"/>
+            <rect x="28.5" y="2.5" width="6" height="6" rx="1" fill="white"/>
+            <rect x="29.5" y="3.5" width="4" height="4" rx="0.5" fill="#0a0e1a"/>
+            <!-- Finder pattern BL -->
+            <rect x="1" y="27" width="9" height="9" rx="1.5" fill="#0a0e1a"/>
+            <rect x="2.5" y="28.5" width="6" height="6" rx="1" fill="white"/>
+            <rect x="3.5" y="29.5" width="4" height="4" rx="0.5" fill="#0a0e1a"/>
+            <!-- Data dots (decorative) -->
+            <rect x="12" y="1" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="15" y="1" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="18" y="1" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="12" y="4" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="18" y="4" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="12" y="7" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="15" y="7" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="21" y="1" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="1" y="12" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="4" y="12" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="7" y="12" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="1" y="15" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="7" y="15" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="1" y="18" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="4" y="18" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="7" y="18" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="27" y="12" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="30" y="12" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="33" y="12" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="27" y="15" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="33" y="15" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="27" y="18" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="33" y="18" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <!-- Centre data block -->
+            <rect x="12" y="12" width="13" height="13" rx="2" fill="#0a0e1a" opacity="0.06"/>
+            <rect x="13" y="13" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="16" y="13" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="19" y="13" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="22" y="13" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="13" y="16" width="2" height="2" rx="0.4" fill="#00d4aa"/>
+            <rect x="16" y="16" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="19" y="16" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="22" y="16" width="2" height="2" rx="0.4" fill="#00d4aa"/>
+            <rect x="13" y="19" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="16" y="19" width="2" height="2" rx="0.4" fill="#00d4aa"/>
+            <rect x="19" y="19" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="22" y="19" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="13" y="22" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="16" y="22" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="19" y="22" width="2" height="2" rx="0.4" fill="#00d4aa"/>
+            <rect x="22" y="22" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <!-- Bottom data row -->
+            <rect x="12" y="27" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="15" y="27" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="18" y="27" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="21" y="27" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="12" y="30" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="18" y="30" width="2" height="2" rx="0.4" fill="#00d4aa"/>
+            <rect x="21" y="30" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="12" y="33" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="15" y="33" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+            <rect x="21" y="33" width="2" height="2" rx="0.4" fill="#0a0e1a"/>
+          </svg>
+        </div>
+      </div>
+
+    </div><!-- /card -->
+  </div><!-- /card-wrap -->
+
+  <!-- Action buttons -->
+  <div class="actions">
+    <button class="btn btn-primary" onclick="window.print()">⬇ Download / Print</button>
+    <button class="btn btn-ghost" onclick="copyLink()">🔗 Copy Link</button>
+  </div>
+
+  <script>
+    function copyLink() {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        const btn = document.querySelector('.btn-ghost');
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => btn.textContent = '🔗 Copy Link', 2000);
+      });
+    }
+  </script>
+</body>
+</html>

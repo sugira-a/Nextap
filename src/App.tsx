@@ -6,6 +6,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const FeaturesPage = lazy(() => import("./pages/marketing/FeaturesPage"));
+const PricingPage = lazy(() => import("./pages/marketing/PricingPage"));
+const TeamsPage = lazy(() => import("./pages/marketing/TeamsPage"));
+const AboutPage = lazy(() => import("./pages/marketing/AboutPage"));
+const BlogPage = lazy(() => import("./pages/marketing/BlogPage"));
+const ContactPage = lazy(() => import("./pages/marketing/ContactPage"));
+const PrivacyPage = lazy(() => import("./pages/marketing/PrivacyPage"));
+const TermsPage = lazy(() => import("./pages/marketing/TermsPage"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile"));
 const CardRoute = lazy(() => import("./pages/CardRoute"));
 const Login = lazy(() => import("./pages/Login"));
@@ -13,12 +21,13 @@ const Register = lazy(() => import("./pages/Register"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
 const DashboardOverview = lazy(() => import("./pages/dashboard/DashboardOverview"));
-const EditProfile = lazy(() => import("./pages/dashboard/EditProfile"));
+const EditProfile = lazy(() => import("./pages/dashboard/ProfileStudioProfessional"));
 const Links = lazy(() => import("./pages/dashboard/Links"));
 const Appearance = lazy(() => import("./pages/dashboard/Appearance"));
 const MyCard = lazy(() => import("./pages/dashboard/MyCard"));
 const Analytics = lazy(() => import("./pages/dashboard/Analytics"));
 const SettingsPage = lazy(() => import("./pages/dashboard/SettingsPage"));
+const ReceivedContacts = lazy(() => import("./pages/dashboard/ReceivedContacts"));
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
 const AdminCompanies = lazy(() => import("./pages/admin/AdminCompanies"));
@@ -51,6 +60,14 @@ const App = () => (
         <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading...</div>}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/features" element={<FeaturesPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/for-teams" element={<TeamsPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
             <Route path="/u/:username" element={<PublicProfile />} />
             <Route path="/card/:code" element={<CardRoute />} />
             <Route path="/login" element={<Login />} />
@@ -64,6 +81,7 @@ const App = () => (
               <Route path="appearance" element={<Appearance />} />
               <Route path="card" element={<MyCard />} />
               <Route path="analytics" element={<Analytics />} />
+              <Route path="contacts" element={<ReceivedContacts />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 

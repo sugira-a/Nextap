@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from ..extensions import db
-from ..models import Profile, User, AnalyticsEvent, CompanyPolicy
+from ..models import Profile, User, AnalyticsEvent, CompanyPolicy, SharedContact
 from ..utils.auth import get_jwt_user, validate_request_json
 from datetime import datetime
 
@@ -192,3 +192,81 @@ def reject_profile(profile_id):
         'message': 'Profile rejected',
         'reason': data['reason']
     }, 200
+
+
+@bp.route('/<slug>/share-contact', methods=['POST'])
+def share_contact(slug):
+    """Public endpoint — visitor shares their contact info with the card owner."""
+    profile = Profile.query.filter_by(public_slug=slug).first()
+    if not profile:
+        return {'error': 'Profile not found'}, 404
+
+    data = request.get_json(silent=True) or {}
+    name = (data.get('name') or '').strip()
+    phone = (data.get('phone') or '').strip()
+    email = (data.get('email') or '').strip()
+    company = (data.get('company') or '').strip()
+    note = (data.get('note') or '').strip()
+
+    if not name:
+        return {'error': 'Name is required'}, 400
+    if not phone and not email:
+        return {'error': 'Either phone or email is required'}, 400
+
+    contact = SharedContact(
+        profile_id=profile.id,
+        name=name,
+        phone=phone or None,
+        email=email or None,
+        company=company or None,
+        note=note or None,
+    )
+    db.session.add(contact)
+    db.session.commit()
+
+    return {'message': 'Contact shared successfully', 'id': contact.id}, 201
+
+
+@bp.route('/me/contacts', methods=['GET'])
+def get_my_contacts():
+    """Return all contacts shared with the current user's public profile."""
+    user = get_jwt_user()
+    if not user:
+        return {'error': 'Authentication required'}, 401
+
+    if not user.profile:
+        return {'error': 'Profile not found'}, 404
+
+    unread_only = request.args.get('unread') == 'true'
+
+    query = SharedContact.query.filter_by(profile_id=user.profile.id)
+    if unread_only:
+        query = query.filter_by(is_read=False)
+
+    contacts = query.order_by(SharedContact.submitted_at.desc()).all()
+    unread_count = SharedContact.query.filter_by(profile_id=user.profile.id, is_read=False).count()
+
+    return {
+        'contacts': [c.to_dict() for c in contacts],
+        'unread_count': unread_count,
+    }, 200
+
+
+@bp.route('/me/contacts/<contact_id>/read', methods=['POST'])
+def mark_contact_read(contact_id):
+    """Mark a received contact as read."""
+    user = get_jwt_user()
+    if not user:
+        return {'error': 'Authentication required'}, 401
+
+    if not user.profile:
+        return {'error': 'Profile not found'}, 404
+
+    contact = SharedContact.query.filter_by(id=contact_id, profile_id=user.profile.id).first()
+    if not contact:
+        return {'error': 'Contact not found'}, 404
+
+    contact.is_read = True
+    db.session.commit()
+
+    return {'message': 'Marked as read'}, 200

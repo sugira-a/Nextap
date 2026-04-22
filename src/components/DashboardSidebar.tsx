@@ -1,83 +1,206 @@
-import { Link, useLocation } from "react-router-dom";
+﻿import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   User,
-  Link2,
-  Palette,
   CreditCard,
   BarChart3,
   Settings,
   LogOut,
   ChevronLeft,
+  UsersRound,
+  X,
+  Power,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { apiRequest } from "@/lib/api";
 
 const navItems = [
-  { label: "Overview", icon: LayoutDashboard, path: "/dashboard" },
-  { label: "Edit Profile", icon: User, path: "/dashboard/profile" },
-  { label: "Links", icon: Link2, path: "/dashboard/links" },
-  { label: "Appearance", icon: Palette, path: "/dashboard/appearance" },
-  { label: "My Card", icon: CreditCard, path: "/dashboard/card" },
-  { label: "Analytics", icon: BarChart3, path: "/dashboard/analytics" },
-  { label: "Settings", icon: Settings, path: "/dashboard/settings" },
+  { label: "Overview",     icon: LayoutDashboard, path: "/dashboard"            },
+  { label: "Edit Profile", icon: User,             path: "/dashboard/profile"   },
+  { label: "My Card",      icon: CreditCard,       path: "/dashboard/card"      },
+  { label: "Analytics",   icon: BarChart3,        path: "/dashboard/analytics" },
+  { label: "Contacts",    icon: UsersRound,       path: "/dashboard/contacts"  },
+  { label: "Settings",    icon: Settings,         path: "/dashboard/settings"  },
 ];
 
-const DashboardSidebar = () => {
+type Props = {
+  mobileOpen: boolean;
+  setMobileOpen: (v: boolean) => void;
+};
+
+const SidebarContent = ({
+  collapsed,
+  setCollapsed,
+  unreadContacts,
+  onNavClick,
+  mobile = false,
+}: {
+  collapsed: boolean;
+  setCollapsed: (v: boolean) => void;
+  unreadContacts: number;
+  onNavClick?: () => void;
+  mobile?: boolean;
+}) => {
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    navigate("/login");
+  };
 
   return (
-    <aside className={cn(
-      "sticky top-0 h-screen border-r border-border bg-sidebar flex flex-col transition-all duration-300",
-      collapsed ? "w-16" : "w-64"
-    )}>
-      <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-        {!collapsed && (
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-              <span className="text-primary-foreground font-heading font-bold text-sm">N</span>
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className={cn(
+        "border-b border-zinc-200",
+        collapsed && !mobile
+          ? "flex flex-col items-center gap-2 py-3 px-2"
+          : "flex items-center justify-between px-4 py-4"
+      )}>
+        {(!collapsed || mobile) && (
+          <Link to="/" className="flex items-center gap-2.5" onClick={onNavClick}>
+            <div className="h-8 w-8 rounded-lg bg-zinc-900 flex items-center justify-center shrink-0">
+              <span className="text-white font-bold text-sm">N</span>
             </div>
-            <span className="font-heading font-bold text-lg text-sidebar-foreground">NexTap</span>
+            <span className="font-bold text-base text-zinc-900 tracking-tight">NexTap</span>
           </Link>
         )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className={cn("p-1.5 rounded-md hover:bg-sidebar-accent transition-colors", collapsed && "mx-auto")}
-        >
-          <ChevronLeft className={cn("w-4 h-4 text-sidebar-foreground transition-transform", collapsed && "rotate-180")} />
-        </button>
+        {collapsed && !mobile && (
+          <Link to="/" title="NexTap">
+            <div className="h-8 w-8 rounded-lg bg-zinc-900 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">N</span>
+            </div>
+          </Link>
+        )}
+        {!mobile && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-1.5 rounded-md hover:bg-zinc-100 transition-colors"
+          >
+            <ChevronLeft className={cn("w-4 h-4 text-zinc-400 transition-transform duration-200", collapsed && "rotate-180")} />
+          </button>
+        )}
+        {mobile && (
+          <button onClick={onNavClick} className="p-1.5 rounded-md hover:bg-zinc-100 transition-colors ml-auto">
+            <X className="w-4 h-4 text-zinc-400" />
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 p-3 space-y-1">
+      {/* Nav */}
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
-          const active = location.pathname === item.path;
+          const active =
+            location.pathname === item.path ||
+            (item.path !== "/dashboard" && location.pathname.startsWith(item.path));
           return (
             <Link
               key={item.path}
               to={item.path}
+              onClick={onNavClick}
+              title={collapsed && !mobile ? item.label : undefined}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
-                active ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all",
+                active
+                  ? "bg-zinc-900 text-white font-medium"
+                  : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
               )}
             >
-              <item.icon className="w-4 h-4 shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              <item.icon className={cn("w-4 h-4 shrink-0", active ? "text-white" : "text-zinc-400")} />
+              {(!collapsed || mobile) && (
+                <>
+                  <span className="flex-1">{item.label}</span>
+                  {item.path === "/dashboard/contacts" && unreadContacts > 0 && (
+                    <span className="min-w-[18px] h-[18px] rounded-full bg-white text-zinc-900 text-[9px] font-bold flex items-center justify-center px-1">
+                      {unreadContacts}
+                    </span>
+                  )}
+                </>
+              )}
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-3 border-t border-sidebar-border">
-        <Link
-          to="/login"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+      {/* Logout */}
+      <div className="p-3 border-t border-zinc-200">
+        <button
+          onClick={() => { onNavClick?.(); handleLogout(); }}
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-zinc-400 hover:bg-red-50 hover:text-red-500 transition-all group",
+            collapsed && !mobile && "justify-center"
+          )}
+          title={collapsed && !mobile ? "Log out" : undefined}
         >
-          <LogOut className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Log out</span>}
-        </Link>
+          <Power className="w-4 h-4 shrink-0 transition-colors" />
+          {(!collapsed || mobile) && <span className="text-sm">Log out</span>}
+        </button>
       </div>
-    </aside>
+    </div>
+  );
+};
+
+const DashboardSidebar = ({ mobileOpen, setMobileOpen }: Props) => {
+  const [collapsed, setCollapsed] = useState(false);
+  const [unreadContacts, setUnreadContacts] = useState(0);
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    apiRequest<{ unread_count: number }>("/api/profile/me/contacts?unread=true", {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then((res) => setUnreadContacts(res.unread_count)).catch(() => {});
+  }, []);
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className={cn(
+        "hidden md:flex flex-col sticky top-0 h-screen bg-white border-r border-zinc-200 transition-all duration-300 shrink-0",
+        collapsed ? "w-16" : "w-60"
+      )}>
+        <SidebarContent
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+          unreadContacts={unreadContacts}
+        />
+      </aside>
+
+      {/* Mobile drawer */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm md:hidden"
+              onClick={() => setMobileOpen(false)}
+            />
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 md:hidden"
+            >
+              <SidebarContent
+                collapsed={false}
+                setCollapsed={() => {}}
+                unreadContacts={unreadContacts}
+                onNavClick={() => setMobileOpen(false)}
+                mobile
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

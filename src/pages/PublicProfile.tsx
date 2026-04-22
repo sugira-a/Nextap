@@ -1,10 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Phone, Mail, Globe, MessageCircle, Linkedin, Twitter, Instagram, Download, MapPin, Share2, ExternalLink } from "lucide-react";
+import { Phone, Mail, Globe, MessageCircle, Linkedin, Twitter, Instagram, Download, MapPin, Share2, ExternalLink, UserPlus, Check, X, Youtube, Clock, Send, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/api";
+
+// ── Active Design (canvas) types ──────────────────────────────────────────────
+type CanvasElement = {
+  id: string; type: string;
+  x: number; y: number; w: number; h: number;
+  text?: string; href?: string; src?: string;
+  fontSize: number; color: string;
+  align: "left" | "center" | "right";
+  fontWeight: number; background: string; radius: number; padding: number;
+  opacity: number; italic: boolean; zIndex: number; letterSpacing: number;
+  iconName?: string; iconColor?: string;
+  shadowBlur?: number; shadowColor?: string;
+  hidden?: boolean; // Added property
+};
+type CanvasBg = { type: string; color: string; gradient: string; imageUrl?: string; };
+type ActiveDesign = { elements: CanvasElement[]; bg: CanvasBg; } | null;
+
+const CANVAS_ICON_MAP: Record<string, React.ElementType> = {
+  Phone, Mail, Globe, MapPin, MessageCircle, Linkedin, Twitter, Instagram, Youtube, Clock, Send, Star,
+};
 
 type PublicProfileResponse = {
   profile: {
@@ -59,19 +79,187 @@ const fadeUp = (delay: number) => ({
   animate: { opacity: 1, y: 0, transition: { delay, duration: 0.4 } },
 });
 
+type ShareForm = { name: string; phone: string; email: string; company: string };
+
+type CanvasHandlers = {
+  onSaveContact?: () => void;
+  onShareContact?: () => void;
+};
+
+const renderCanvasElement = (element: CanvasElement, handlers?: CanvasHandlers) => {
+  const base = {
+    position: "absolute" as const,
+    top: element.y,
+    left: element.x,
+    width: element.w,
+    height: element.h,
+    fontSize: element.fontSize,
+    color: element.color,
+    backgroundColor: element.background || undefined,
+    borderRadius: element.radius,
+    textAlign: element.align,
+    fontWeight: element.fontWeight,
+    fontStyle: element.italic ? "italic" as const : "normal" as const,
+    opacity: element.opacity ?? 1,
+    zIndex: element.zIndex ?? 0,
+    letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : undefined,
+    boxShadow: element.shadowBlur ? `0 0 ${element.shadowBlur}px ${element.shadowColor}` : undefined,
+    padding: element.padding ? element.padding : undefined,
+    overflow: "hidden" as const,
+  };
+
+  if (element.hidden) return null;
+
+  const resolveHref = (iconName?: string, text?: string, explicitHref?: string): string | undefined => {
+    if (explicitHref?.trim()) {
+      const h = explicitHref.trim();
+      return /^(https?:\/\/|tel:|mailto:)/i.test(h) ? h : `https://${h}`;
+    }
+    const t = (text || "").trim();
+    if (!t) return undefined;
+    switch (iconName) {
+      case "Phone":
+        return `tel:${t.replace(/\s/g, "")}`;
+      case "Mail":
+        return `mailto:${t}`;
+      case "MessageCircle":
+        return `https://wa.me/${t.replace(/[^0-9]/g, "")}`;
+      case "Globe":
+        return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+      case "Linkedin":
+        return /^https?:\/\//i.test(t) ? t : `https://linkedin.com/in/${t}`;
+      case "Twitter":
+        return /^https?:\/\//i.test(t) ? t : `https://twitter.com/${t}`;
+      case "Instagram":
+        return /^https?:\/\//i.test(t) ? t : `https://instagram.com/${t}`;
+      case "MapPin":
+        return `https://maps.google.com/?q=${encodeURIComponent(t)}`;
+      default:
+        return undefined;
+    }
+  };
+
+  const isSaveBtn = /save.contact/i.test(element.text || "");
+  const isShareBtn = /share.my.contact/i.test(element.text || "");
+
+  const buttonBaseStyle: React.CSSProperties = {
+    ...base,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    textDecoration: "none",
+    boxSizing: "border-box",
+    overflow: "hidden",
+    border: "none",
+    outline: "none",
+  };
+
+  switch (element.type) {
+    case "text":
+      return <div key={element.id} style={base}>{element.text}</div>;
+    case "button": {
+      if (isSaveBtn && handlers?.onSaveContact) {
+        return (
+          <button key={element.id} onClick={handlers.onSaveContact} style={buttonBaseStyle}>
+            {element.text}
+          </button>
+        );
+      }
+      if (isShareBtn && handlers?.onShareContact) {
+        return (
+          <button key={element.id} onClick={handlers.onShareContact} style={buttonBaseStyle}>
+            {element.text}
+          </button>
+        );
+      }
+      const href = resolveHref(undefined, element.href, element.href);
+      return href ? (
+        <a key={element.id} href={href} target="_blank" rel="noreferrer" style={buttonBaseStyle}>
+          {element.text}
+        </a>
+      ) : (
+        <button key={element.id} style={buttonBaseStyle}>{element.text}</button>
+      );
+    }
+    case "image":
+      if (!element.src) return null;
+      return <img key={element.id} src={element.src} alt="" style={{ ...base, objectFit: "cover" }} />;
+    case "shape":
+      return <div key={element.id} style={base} />;
+    case "divider":
+      return <div key={element.id} style={{ ...base, backgroundColor: element.background || element.color }} />;
+    case "icon_row": {
+      const Icon = CANVAS_ICON_MAP[element.iconName || ""];
+      const href = resolveHref(element.iconName, element.text, element.href);
+      const inner = (
+        <>
+          {Icon && <Icon size={element.fontSize || 16} color={element.iconColor || element.color} style={{ flexShrink: 0 }} />}
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{element.text}</span>
+        </>
+      );
+      return href ? (
+        <a key={element.id} href={href} target={element.iconName === "Phone" || element.iconName === "Mail" ? undefined : "_blank"} rel="noreferrer"
+          style={{ ...base, display: "flex", alignItems: "center", gap: 8, textDecoration: "none", cursor: "pointer" }}>
+          {inner}
+        </a>
+      ) : (
+        <div key={element.id} style={{ ...base, display: "flex", alignItems: "center", gap: 8 }}>
+          {inner}
+        </div>
+      );
+    }
+    default:
+      return null;
+  }
+};
+
 const PublicProfile = () => {
   const { username } = useParams<{ username: string }>();
   const [profile, setProfile] = useState<PublicProfileResponse["profile"] | null>(null);
   const [displayName, setDisplayName] = useState("User");
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareForm, setShareForm] = useState<ShareForm>({ name: "", phone: "", email: "", company: "" });
+  const [shareSubmitted, setShareSubmitted] = useState(false);
+  const [activeDesign, setActiveDesign] = useState<ActiveDesign>(null);
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
+  const [canvasScale, setCanvasScale] = useState(1);
+  const CANVAS_W = 390;
+  const CANVAS_H = 700;
+
+  useEffect(() => {
+    const el = canvasWrapperRef.current;
+    if (!el) return;
+    const update = () => {
+      const availW = el.offsetWidth;
+      if (availW > 0) setCanvasScale(Math.min(1, availW / CANVAS_W));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
 
   useEffect(() => {
     const load = async () => {
       if (!username) return;
 
       try {
-        const response = await apiRequest<PublicProfileResponse>(`/api/profile/${username}`);
-        setProfile(response.profile);
-        setDisplayName(response.user ? `${response.user.first_name} ${response.user.last_name}`.trim() : username);
+        const [profileRes, designRes] = await Promise.allSettled([
+          apiRequest<PublicProfileResponse>(`/api/profile/${username}`),
+          apiRequest<{ design: ActiveDesign }>(`/api/designs/public/${username}`),
+        ]);
+
+        if (profileRes.status === "fulfilled") {
+          setProfile(profileRes.value.profile);
+          setDisplayName(profileRes.value.user ? profileRes.value.user.first_name.trim().replace(/\b\w/g, (c: string) => c.toUpperCase()) : username.replace(/[-_]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()));
+        } else {
+          toast.error("Profile not found");
+        }
+
+        if (designRes.status === "fulfilled" && designRes.value.design) {
+          setActiveDesign(designRes.value.design);
+        }
       } catch {
         toast.error("Profile not found");
       }
@@ -98,6 +286,23 @@ const PublicProfile = () => {
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Contact downloaded");
+  };
+
+  const handleShareContact = async () => {
+    if (!shareForm.name || (!shareForm.phone && !shareForm.email)) {
+      toast.error("Name and phone or email are required.");
+      return;
+    }
+    try {
+      await apiRequest(`/api/profile/${username}/share-contact`, {
+        method: "POST",
+        body: JSON.stringify(shareForm),
+      });
+      toast.success(`Your contact was sent to ${displayName}!`);
+      setShareSubmitted(true);
+    } catch {
+      toast.error("Failed to send contact. Please try again.");
+    }
   };
 
   const handleShare = async () => {
@@ -215,8 +420,130 @@ const PublicProfile = () => {
   const cardTitleSize = profile.title_size || 14;
   const cardBioSize = profile.bio_size || 14;
 
+  // If custom design exists, show only the design canvas + footer
+  if (activeDesign && activeDesign.elements && activeDesign.elements.length > 0) {
+    return (
+      <div className="min-h-screen bg-surface flex flex-col items-center justify-start sm:justify-center py-8 px-4">
+        {shareOpen && (
+          <div className="fixed inset-0 z-[999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-4" onClick={() => setShareOpen(false)}>
+            <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#1a1c22] shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center">
+                    <UserPlus className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm text-foreground">Send your contact</p>
+                    <p className="text-xs text-muted-foreground">to <span className="font-medium text-foreground capitalize">{displayName}</span></p>
+                  </div>
+                </div>
+                <button onClick={() => setShareOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+              </div>
+              {shareSubmitted ? (
+                <div className="text-center py-4 space-y-3">
+                  <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center mx-auto">
+                    <Check className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <p className="font-semibold text-foreground">Contact Sent!</p>
+                  <p className="text-sm text-muted-foreground">{displayName} will receive your details.</p>
+                  <button onClick={() => setShareOpen(false)} className="mt-2 px-6 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-400 transition-colors">Done</button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {([{key:"name",label:"Full name *",type:"text"},{key:"phone",label:"Phone *",type:"tel"},{key:"email",label:"Email",type:"email"},{key:"company",label:"Company",type:"text"}] as {key:keyof ShareForm;label:string;type:string}[]).map(({key,label,type}) => (
+                    <input key={key} type={type} placeholder={label}
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      value={shareForm[key]} onChange={(e) => setShareForm({...shareForm,[key]:e.target.value})} />
+                  ))}
+                  <button onClick={handleShareContact} className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors mt-1">
+                    Send My Contact
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        <div className="flex flex-col items-center w-full">
+          <div
+            ref={canvasWrapperRef}
+            className="rounded-xl overflow-hidden shadow-2xl"
+            style={{ width: "100%", maxWidth: CANVAS_W, height: CANVAS_H * canvasScale, flexShrink: 0 }}
+          >
+            <div
+              className="relative overflow-hidden"
+              style={{
+                width: CANVAS_W,
+                height: CANVAS_H,
+                transform: `scale(${canvasScale})`,
+                transformOrigin: "top left",
+                ...(activeDesign.bg?.type === "gradient"
+                  ? { background: activeDesign.bg.gradient }
+                  : activeDesign.bg?.imageUrl
+                    ? { backgroundImage: `url(${activeDesign.bg.imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
+                    : { backgroundColor: activeDesign.bg?.color || "#ffffff" }
+                ),
+              }}
+            >
+              {activeDesign.elements.map((element) => renderCanvasElement(element, {
+                onSaveContact: handleSaveContact,
+                onShareContact: () => { setShareSubmitted(false); setShareForm({ name: "", phone: "", email: "", company: "" }); setShareOpen(true); },
+              }))}
+            </div>
+          </div>
+          <a href="/" className="mt-4 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors font-medium">
+            <div className="w-5 h-5 rounded bg-primary flex items-center justify-center shadow">
+              <span className="text-primary-foreground text-[9px] font-bold">N</span>
+            </div>
+            Powered by NexTap
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Standard profile layout (no custom design)
   return (
     <div className="min-h-screen bg-surface">
+      {/* Share My Contact Modal */}
+      {shareOpen && (
+        <div className="fixed inset-0 z-[999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-4" onClick={() => setShareOpen(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#1a1c22] shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center">
+                  <UserPlus className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-foreground">Send your contact</p>
+                  <p className="text-xs text-muted-foreground">to <span className="font-medium text-foreground capitalize">{displayName}</span></p>
+                </div>
+              </div>
+              <button onClick={() => setShareOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+            </div>
+            {shareSubmitted ? (
+              <div className="text-center py-4 space-y-3">
+                <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center mx-auto">
+                  <Check className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <p className="font-semibold text-foreground">Contact Sent!</p>
+                <p className="text-sm text-muted-foreground">{displayName} will receive your details.</p>
+                <button onClick={() => setShareOpen(false)} className="mt-2 px-6 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-400 transition-colors">Done</button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {([{key:"name",label:"Full name *",type:"text"},{key:"phone",label:"Phone *",type:"tel"},{key:"email",label:"Email",type:"email"},{key:"company",label:"Company",type:"text"}] as {key:keyof ShareForm;label:string;type:string}[]).map(({key,label,type}) => (
+                  <input key={key} type={type} placeholder={label}
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    value={shareForm[key]} onChange={(e) => setShareForm({...shareForm,[key]:e.target.value})} />
+                ))}
+                <button onClick={handleShareContact} className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors mt-1">
+                  Send My Contact
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="max-w-md mx-auto bg-card min-h-screen shadow-2xl relative">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-44 relative overflow-hidden" style={{ background: profile.cover_color || profile.company_brand_color || "#141414" }}>
           {profile.background_image_url && (
@@ -419,9 +746,12 @@ const PublicProfile = () => {
           })}
 
           {cardShowExchange && (
-            <motion.div {...fadeUp(0.6)} className="mt-6">
+            <motion.div {...fadeUp(0.6)} className="mt-6 space-y-3">
               <Button onClick={handleSaveContact} className={`w-full ${buttonClass} bg-accent text-accent-foreground hover:bg-accent/90 h-12 text-sm font-semibold`}>
                 <Download className="w-4 h-4 mr-2" /> Save Contact
+              </Button>
+              <Button variant="outline" onClick={() => { setShareSubmitted(false); setShareForm({name:"",phone:"",email:"",company:""}); setShareOpen(true); }} className={`w-full ${buttonClass} border-border bg-transparent hover:bg-secondary h-12 text-sm font-semibold text-foreground`}>
+                <UserPlus className="w-4 h-4 mr-2" /> Share My Contact
               </Button>
             </motion.div>
           )}

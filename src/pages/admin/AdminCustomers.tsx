@@ -1,14 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, RefreshCw, UserRoundPen, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 import { apiRequest } from "@/lib/api";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 type Customer = {
   user: {
@@ -46,21 +41,6 @@ type CustomerResponse = {
   total: number;
 };
 
-const emptyForm = {
-  first_name: "",
-  last_name: "",
-  status: "active",
-  public_slug: "",
-  title: "",
-  bio: "",
-  phone: "",
-  website: "",
-  location: "",
-  linkedin_url: "",
-  twitter_url: "",
-  instagram_url: "",
-};
-
 const AdminCustomers = () => {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -69,10 +49,7 @@ const AdminCustomers = () => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
 
-  const authHeaders = useMemo(() => {
-    const token = localStorage.getItem("access_token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
+  const authHeaders = (() => { const token = localStorage.getItem("access_token"); return token ? { Authorization: `Bearer ${token}` } : {}; })();
 
   const fetchCustomers = async () => {
     try {
@@ -112,94 +89,77 @@ const AdminCustomers = () => {
     );
   });
 
-  const statusBadge = (value: string) => {
-    switch (value) {
-      case "active":
-        return "bg-accent/10 text-accent border-0";
-      case "inactive":
-        return "bg-secondary text-muted-foreground border-0";
-      case "suspended":
-        return "bg-destructive/10 text-destructive border-0";
-      default:
-        return "";
-    }
-  };
-
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="max-w-5xl mx-auto space-y-8 py-2"
+    >
+      {/* Header */}
+      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Customers</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{total} customer accounts</p>
+          <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Admin</p>
+          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Customers</h1>
+          <p className="text-sm text-zinc-400 mt-1">{total} customer accounts</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchCustomers}>
-          <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
-        </Button>
+        <button onClick={fetchCustomers} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Refresh</button>
       </div>
 
+      {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search customers..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 text-sm" />
-        </div>
-        <div className="flex gap-1.5 flex-wrap">
-          {["all", "active", "inactive", "suspended"].map((value) => (
-            <button
-              key={value}
-              onClick={() => setStatus(value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
-                status === value ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-              }`}
-            >
-              {value}
-            </button>
+        <input
+          type="text"
+          placeholder="Search customers…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && fetchCustomers()}
+          className="flex-1 min-w-48 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
+        />
+        <div className="flex gap-1.5 bg-zinc-100 rounded-lg p-1">
+          {["all", "active", "inactive", "suspended"].map(v => (
+            <button key={v} onClick={() => setStatus(v)} className={`text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors capitalize ${status === v ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}>{v}</button>
           ))}
         </div>
       </div>
 
-      {loading ? (
-        <Card className="p-8 text-center text-muted-foreground">Loading customers...</Card>
-      ) : filtered.length === 0 ? (
-        <Card className="p-8 text-center text-muted-foreground">No customers found</Card>
-      ) : (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-secondary/30">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Customer</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider hidden md:table-cell">Profile</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider hidden lg:table-cell">Company</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Status</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((customer) => (
-                <tr key={customer.user.id} className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-foreground">{customer.user.first_name} {customer.user.last_name}</p>
-                    <p className="text-xs text-muted-foreground">{customer.user.email}</p>
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    <p className="text-foreground text-xs">/{customer.profile?.public_slug || "-"}</p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[220px]">{customer.profile?.title || customer.profile?.location || "No profile details"}</p>
-                  </td>
-                  <td className="px-4 py-3 hidden lg:table-cell text-xs text-muted-foreground">{customer.company?.name || "—"}</td>
-                  <td className="px-4 py-3">
-                    <Badge className={`${statusBadge(customer.user.status)} capitalize text-xs`}>{customer.user.status}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button variant="outline" size="sm" onClick={() => navigate(`/admin/customers/${customer.user.id}`)}>
-                      <UserRoundPen className="w-3.5 h-3.5 mr-1.5" /> Edit Profile
-                      <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* Table */}
+      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center h-40"><div className="w-5 h-5 rounded-full border-2 border-zinc-900 border-t-transparent animate-spin" /></div>
+        ) : filtered.length === 0 ? (
+          <div className="flex items-center justify-center h-40 text-sm text-zinc-400">No customers found</div>
+        ) : (
+          <div className="divide-y divide-zinc-100">
+            <div className="grid grid-cols-12 px-6 py-3 bg-zinc-50 border-b border-zinc-100">
+              <span className="col-span-4 text-xs font-medium text-zinc-400 uppercase tracking-wide">Customer</span>
+              <span className="col-span-3 text-xs font-medium text-zinc-400 uppercase tracking-wide hidden md:block">Profile</span>
+              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide hidden lg:block">Company</span>
+              <span className="col-span-1 text-xs font-medium text-zinc-400 uppercase tracking-wide">Status</span>
+              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide text-right">Action</span>
+            </div>
+            {filtered.map(customer => (
+              <div key={customer.user.id} className="grid grid-cols-12 px-6 py-3.5 hover:bg-zinc-50 transition-colors items-center">
+                <div className="col-span-4 min-w-0">
+                  <p className="text-sm font-medium text-zinc-900 truncate">{customer.user.first_name} {customer.user.last_name}</p>
+                  <p className="text-xs text-zinc-400 truncate">{customer.user.email}</p>
+                </div>
+                <div className="col-span-3 hidden md:block min-w-0">
+                  <p className="text-xs text-zinc-700 font-mono">/{customer.profile?.public_slug || "—"}</p>
+                  <p className="text-xs text-zinc-400 truncate">{customer.profile?.title || customer.profile?.location || "—"}</p>
+                </div>
+                <div className="col-span-2 hidden lg:block text-xs text-zinc-400">{customer.company?.name || "—"}</div>
+                <div className="col-span-1">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${customer.user.status === "active" ? "bg-emerald-50 text-emerald-700" : customer.user.status === "suspended" ? "bg-red-50 text-red-600" : "bg-zinc-100 text-zinc-500"}`}>{customer.user.status}</span>
+                </div>
+                <div className="col-span-2 text-right">
+                  <button onClick={() => navigate(`/admin/customers/${customer.user.id}`)} className="text-xs text-zinc-500 hover:text-zinc-900 border border-zinc-200 px-3 py-1.5 rounded-lg transition-colors">Edit Profile</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 };

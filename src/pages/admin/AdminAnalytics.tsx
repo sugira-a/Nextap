@@ -1,75 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  BarChart,
-  Bar,
-} from "recharts";
-import { Activity, Building2, CreditCard, Users, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
-
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { apiRequest, apiRequestWithFallback } from "@/lib/api";
 
 type OverviewResponse = {
   overview: {
     period_days: number;
-    totals: {
-      companies: number;
-      users: number;
-      cards: number;
-      events: number;
-    };
-    new_in_period: {
-      companies: number;
-      users: number;
-      cards: number;
-    };
-    status_breakdown: {
-      active: number;
-      inactive: number;
-      suspended: number;
-    };
+    totals: { companies: number; users: number; cards: number; events: number };
+    new_in_period: { companies: number; users: number; cards: number };
+    status_breakdown: { active: number; inactive: number; suspended: number };
     events_by_day: Record<string, number>;
-    top_companies: Array<{
-      company_id: string;
-      name: string;
-      events: number;
-      users: number;
-      cards: number;
-    }>;
-    top_users: Array<{
-      user_id: string;
-      name: string;
-      email: string;
-      role: string;
-      events: number;
-      company?: string | null;
-    }>;
-    company_options: Array<{
-      id: string;
-      name: string;
-      slug: string;
-      status: string;
-    }>;
+    top_companies: Array<{ company_id: string; name: string; events: number; users: number; cards: number }>;
+    top_users: Array<{ user_id: string; name: string; email: string; role: string; events: number; company?: string | null }>;
+    company_options: Array<{ id: string; name: string; slug: string; status: string }>;
   };
 };
 
 const AdminAnalytics = () => {
   const [days, setDays] = useState(30);
   const [companyId, setCompanyId] = useState("all");
-  const [role, setRole] = useState("all");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [overview, setOverview] = useState<OverviewResponse["overview"] | null>(null);
 
   const authHeaders = useMemo(() => {
@@ -80,421 +30,224 @@ const AdminAnalytics = () => {
   const loadOverview = async () => {
     try {
       setLoading(true);
-      setErrorMessage(null);
-      const params = new URLSearchParams();
-      params.set("days", String(days));
+      const params = new URLSearchParams({ days: String(days) });
       if (companyId !== "all") params.set("company_id", companyId);
-      if (role !== "all") params.set("role", role);
-      if (startDate && endDate) {
-        params.set("start_date", startDate);
-        params.set("end_date", endDate);
-      }
 
       const overviewData = await apiRequestWithFallback<OverviewResponse["overview"]>([
         async () => {
-          const response = await apiRequest<OverviewResponse>(`/api/admin/analytics/overview?${params.toString()}`, {
-            headers: authHeaders,
-          });
-          return response.overview;
+          const r = await apiRequest<OverviewResponse>(`/api/admin/analytics/overview?${params}`, { headers: authHeaders });
+          return r.overview;
         },
         async () => {
-          const [statsResponse, companiesResponse] = await Promise.all([
-            apiRequest<{
-              stats: {
-                total_companies: number;
-                total_users: number;
-                total_cards: number;
-                by_role: { admin: number; company_admin: number; employee: number };
-              };
-            }>("/api/admin/stats", { headers: authHeaders }),
-            apiRequest<{ companies: Array<{ id: string; name: string; slug: string; status: string }> }>("/api/admin/companies?per_page=200", {
-              headers: authHeaders,
-            }).catch(() => ({ companies: [] })),
+          const [statsRes, companiesRes] = await Promise.all([
+            apiRequest<{ stats: { total_companies: number; total_users: number; total_cards: number; by_role: { admin: number; company_admin: number; employee: number } } }>("/api/admin/stats", { headers: authHeaders }),
+            apiRequest<{ companies: Array<{ id: string; name: string; slug: string; status: string }> }>("/api/admin/companies?per_page=200", { headers: authHeaders }).catch(() => ({ companies: [] })),
           ]);
-
           const eventsByDay: Record<string, number> = {};
-          for (let offset = 0; offset < days; offset += 1) {
-            const day = new Date(Date.now() - (days - 1 - offset) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-            eventsByDay[day] = 0;
+          for (let i = 0; i < days; i++) {
+            const d = new Date(Date.now() - (days - 1 - i) * 86400000).toISOString().slice(0, 10);
+            eventsByDay[d] = 0;
           }
-
-          const roleCount = role === "admin"
-            ? statsResponse.stats.by_role.admin
-            : role === "company_admin"
-            ? statsResponse.stats.by_role.company_admin
-            : role === "employee"
-            ? statsResponse.stats.by_role.employee
-            : statsResponse.stats.total_users;
-
           return {
             period_days: days,
-            totals: {
-              companies: companyId === "all" ? statsResponse.stats.total_companies : companiesResponse.companies.filter((company) => company.id === companyId).length,
-              users: roleCount,
-              cards: statsResponse.stats.total_cards,
-              events: 0,
-            },
-            new_in_period: {
-              companies: 0,
-              users: 0,
-              cards: 0,
-            },
-            status_breakdown: {
-              active: 0,
-              inactive: 0,
-              suspended: 0,
-            },
+            totals: { companies: statsRes.stats.total_companies, users: statsRes.stats.total_users, cards: statsRes.stats.total_cards, events: 0 },
+            new_in_period: { companies: 0, users: 0, cards: 0 },
+            status_breakdown: { active: 0, inactive: 0, suspended: 0 },
             events_by_day: eventsByDay,
             top_companies: [],
             top_users: [],
-            company_options: companiesResponse.companies || [],
+            company_options: companiesRes.companies || [],
           };
         },
       ]);
-
       setOverview(overviewData);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load analytics overview";
-      setOverview(null);
-      setErrorMessage(message);
-      toast.error(message);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load analytics");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadOverview();
-  }, [days, companyId, role, startDate, endDate]);
-
-  const downloadCsv = (fileName: string, rows: Array<Record<string, string | number>>) => {
-    if (rows.length === 0) {
-      toast.error("No data available for export");
-      return;
-    }
-
-    const headers = Object.keys(rows[0]);
-    const csv = [
-      headers.join(","),
-      ...rows.map((row) =>
-        headers
-          .map((header) => {
-            const value = String(row[header] ?? "").replace(/"/g, '""');
-            return `"${value}"`;
-          })
-          .join(",")
-      ),
-    ].join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  useEffect(() => { loadOverview(); }, [days, companyId]);
 
   const downloadSnapshotCsv = () => {
-    if (!overview) {
-      toast.error("No analytics data available for snapshot export");
-      return;
-    }
-
-    const rows: Array<Record<string, string | number>> = [];
-
-    rows.push({ section: "Summary", metric: "Period Days", value: overview.period_days });
-    rows.push({ section: "Summary", metric: "Total Companies", value: overview.totals.companies });
-    rows.push({ section: "Summary", metric: "Total Users", value: overview.totals.users });
-    rows.push({ section: "Summary", metric: "Total Cards", value: overview.totals.cards });
-    rows.push({ section: "Summary", metric: "Total Events", value: overview.totals.events });
-
-    rows.push({ section: "New In Period", metric: "Companies", value: overview.new_in_period.companies });
-    rows.push({ section: "New In Period", metric: "Users", value: overview.new_in_period.users });
-    rows.push({ section: "New In Period", metric: "Cards", value: overview.new_in_period.cards });
-
-    rows.push({ section: "Status Breakdown", metric: "Active", value: overview.status_breakdown.active });
-    rows.push({ section: "Status Breakdown", metric: "Inactive", value: overview.status_breakdown.inactive });
-    rows.push({ section: "Status Breakdown", metric: "Suspended", value: overview.status_breakdown.suspended });
-
-    Object.entries(overview.events_by_day).forEach(([date, value]) => {
-      rows.push({ section: "Events By Day", metric: date, value });
-    });
-
-    overview.top_companies.forEach((company, index) => {
-      rows.push({
-        section: "Top Companies",
-        metric: `${index + 1}. ${company.name}`,
-        value: company.events,
-      });
-    });
-
-    overview.top_users.forEach((user, index) => {
-      rows.push({
-        section: "Top Users",
-        metric: `${index + 1}. ${user.name} (${user.role})`,
-        value: user.events,
-      });
-    });
-
-    const dateLabel = new Date().toISOString().slice(0, 10);
-    downloadCsv(`analytics-snapshot-${dateLabel}.csv`, rows);
+    if (!overview) { toast.error("No data"); return; }
+    const rows: Array<Record<string, string | number>> = [
+      { section: "Summary", metric: "Period Days", value: overview.period_days },
+      { section: "Summary", metric: "Total Companies", value: overview.totals.companies },
+      { section: "Summary", metric: "Total Users", value: overview.totals.users },
+      { section: "Summary", metric: "Total Cards", value: overview.totals.cards },
+      { section: "Summary", metric: "Total Events", value: overview.totals.events },
+      ...Object.entries(overview.events_by_day).map(([date, v]) => ({ section: "Events By Day", metric: date, value: v })),
+      ...overview.top_companies.map((c, i) => ({ section: "Top Companies", metric: `${i + 1}. ${c.name}`, value: c.events })),
+    ];
+    const headers = Object.keys(rows[0]);
+    const csv = [headers.join(","), ...rows.map(r => headers.map(h => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([csv], { type: "text/csv" })), download: `analytics-${new Date().toISOString().slice(0, 10)}.csv` });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
-  const activitySeries = overview
-    ? Object.entries(overview.events_by_day).map(([date, value]) => ({
-        date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        events: value,
-      }))
-    : [];
-
   if (loading) {
-    return <Card className="p-8 text-center text-muted-foreground">Loading analytics...</Card>;
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="w-6 h-6 rounded-full border-2 border-zinc-900 border-t-transparent animate-spin" />
+      </div>
+    );
   }
 
   if (!overview) {
     return (
-      <Card className="p-8 text-center space-y-3">
-        <p className="text-sm text-muted-foreground">{errorMessage || "Failed to load analytics"}</p>
-        <Button variant="outline" size="sm" onClick={loadOverview}>Retry</Button>
-      </Card>
+      <div className="flex flex-col items-center justify-center h-96 gap-3">
+        <p className="text-sm text-zinc-400">Failed to load analytics</p>
+        <button onClick={loadOverview} className="text-sm border border-zinc-200 rounded-xl px-4 py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">Retry</button>
+      </div>
     );
   }
 
-  const kpis = [
-    {
-      title: "Companies",
-      value: overview.totals.companies,
-      delta: `+${overview.new_in_period.companies} in ${overview.period_days}d`,
-      icon: Building2,
-      tone: "bg-sky-50 text-sky-700",
-    },
-    {
-      title: "Users",
-      value: overview.totals.users,
-      delta: `+${overview.new_in_period.users} in ${overview.period_days}d`,
-      icon: Users,
-      tone: "bg-emerald-50 text-emerald-700",
-    },
-    {
-      title: "Cards",
-      value: overview.totals.cards,
-      delta: `+${overview.new_in_period.cards} in ${overview.period_days}d`,
-      icon: CreditCard,
-      tone: "bg-indigo-50 text-indigo-700",
-    },
-    {
-      title: "Events",
-      value: overview.totals.events,
-      delta: `Traffic over ${overview.period_days}d`,
-      icon: Activity,
-      tone: "bg-amber-50 text-amber-700",
-    },
+  const eventsByDay = Object.entries(overview.events_by_day).slice(-7).map(([date, v]) => ({
+    date: new Date(date).toLocaleDateString("en-US", { weekday: "short" }),
+    events: v,
+  }));
+  const maxBar = Math.max(...eventsByDay.map(d => d.events), 1);
+
+  const statItems = [
+    { label: "Companies", value: overview.totals.companies, delta: `+${overview.new_in_period.companies} new` },
+    { label: "Users", value: overview.totals.users, delta: `+${overview.new_in_period.users} new` },
+    { label: "Cards", value: overview.totals.cards, delta: `+${overview.new_in_period.cards} new` },
+    { label: "Events", value: overview.totals.events, delta: `${overview.period_days}d window` },
   ];
 
+  const maxCompanyEvents = Math.max(...overview.top_companies.map(c => c.events), 1);
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="max-w-5xl mx-auto space-y-8 py-2"
+    >
+      {/* Header */}
+      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Cross-company and cross-user performance intelligence</p>
+          <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Admin</p>
+          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Analytics</h1>
         </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <Button variant="outline" size="sm" onClick={downloadSnapshotCsv}>
-            <Download className="w-3.5 h-3.5 mr-1.5" /> Export Snapshot
-          </Button>
-          <select
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value={7}>Last 7 days</option>
-            <option value={30}>Last 30 days</option>
-            <option value={90}>Last 90 days</option>
-            <option value={365}>Last 365 days</option>
-          </select>
-          <select
-            value={companyId}
-            onChange={(e) => setCompanyId(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="all">All companies</option>
-            {overview.company_options.map((company) => (
-              <option key={company.id} value={company.id}>{company.name}</option>
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1.5">
+            {[7, 14, 30].map(d => (
+              <button key={d} onClick={() => setDays(d)} className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${days === d ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"}`}>{d}d</button>
             ))}
-          </select>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="all">All roles</option>
-            <option value="admin">Admin</option>
-            <option value="company_admin">Company Admin</option>
-            <option value="employee">Employee</option>
-          </select>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          />
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setStartDate("");
-              setEndDate("");
-              setCompanyId("all");
-              setRole("all");
-              setDays(30);
-            }}
-          >
-            Reset
-          </Button>
-          <Button variant="outline" size="sm" onClick={loadOverview}>
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
-          </Button>
+          </div>
+          {overview.company_options.length > 0 && (
+            <select
+              value={companyId}
+              onChange={e => setCompanyId(e.target.value)}
+              className="text-xs border border-zinc-200 rounded-lg px-3 py-1.5 text-zinc-700 outline-none focus:border-zinc-500 transition-colors"
+            >
+              <option value="all">All Companies</option>
+              {overview.company_options.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
+          <button onClick={downloadSnapshotCsv} className="text-xs border border-zinc-200 rounded-xl px-4 py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">Export CSV</button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((item) => (
-          <Card key={item.title} className="p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.title}</p>
-                <p className="font-heading text-3xl font-bold text-foreground mt-1">{item.value}</p>
-                <p className="text-xs text-muted-foreground mt-1">{item.delta}</p>
-              </div>
-              <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${item.tone}`}>
-                <item.icon className="w-5 h-5" />
-              </div>
-            </div>
-          </Card>
+      {/* Stats strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-200 rounded-2xl overflow-hidden border border-zinc-200">
+        {statItems.map((s, i) => (
+          <motion.div key={s.label} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.07 }} className="bg-white px-6 py-7 hover:bg-zinc-50 transition-colors">
+            <p className="text-xs text-zinc-400 uppercase tracking-widest font-medium">{s.label}</p>
+            <p className="text-4xl font-bold text-zinc-900 tracking-tight mt-1">{s.value}</p>
+            <p className="text-xs text-zinc-400 mt-0.5">{s.delta}</p>
+          </motion.div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <Card className="p-5 xl:col-span-2">
-          <h2 className="font-heading font-semibold text-foreground mb-4">Platform Activity Trend</h2>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={activitySeries}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" stroke="#6b7280" />
-              <YAxis stroke="#6b7280" />
-              <Tooltip />
-              <Line type="monotone" dataKey="events" stroke="#22C55E" strokeWidth={2} dot={{ fill: "#22C55E" }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </Card>
+      {/* Weekly chart + Status */}
+      <div className="grid lg:grid-cols-5 gap-6">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6">
+          <p className="text-sm font-semibold text-zinc-900 mb-6">Events â€” Last 7 Days</p>
+          {eventsByDay.length > 0 ? (
+            <>
+              <div className="flex items-end gap-2 h-36">
+                {eventsByDay.map((d, idx) => (
+                  <motion.div key={d.date} initial={{ height: 0 }} animate={{ height: `${Math.max((d.events / maxBar) * 100, 5)}%` }} transition={{ type: "spring", stiffness: 80, damping: 20, delay: 0.3 + idx * 0.05 }} title={`${d.events} events`} className="flex-1 rounded-t-md bg-zinc-900 hover:bg-zinc-700 transition-colors cursor-default" />
+                ))}
+              </div>
+              <div className="flex gap-2 mt-3">
+                {eventsByDay.map(d => <span key={d.date} className="flex-1 text-center text-[11px] text-zinc-400">{d.date}</span>)}
+              </div>
+            </>
+          ) : <div className="h-36 flex items-center justify-center text-sm text-zinc-400">No data</div>}
+        </motion.div>
 
-        <Card className="p-5">
-          <h2 className="font-heading font-semibold text-foreground mb-4">User Status Mix</h2>
-          <div className="space-y-4">
-            {Object.entries(overview.status_breakdown).map(([key, value]) => {
-              const total = Math.max(1, overview.totals.users);
-              const pct = Math.round((value / total) * 100);
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6">
+          <p className="text-sm font-semibold text-zinc-900 mb-5">Status Breakdown</p>
+          <div className="space-y-3">
+            {Object.entries(overview.status_breakdown).map(([label, count]) => {
+              const total = Object.values(overview.status_breakdown).reduce((a, b) => a + b, 0) || 1;
+              const pct = Math.round((count / total) * 100);
               return (
-                <div key={key}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="capitalize text-muted-foreground">{key}</span>
-                    <span className="font-medium text-foreground">{value}</span>
+                <div key={label}>
+                  <div className="flex justify-between text-sm mb-1.5">
+                    <span className="text-zinc-700 capitalize font-medium">{label}</span>
+                    <span className="text-zinc-400 tabular-nums">{count}</span>
                   </div>
-                  <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                    <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
+                  <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ type: "spring", stiffness: 60, damping: 25, delay: 0.4 }} className="h-full bg-zinc-900 rounded-full" />
                   </div>
                 </div>
               );
             })}
           </div>
-        </Card>
+        </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-heading font-semibold text-foreground">Top Companies by Events</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                downloadCsv(
-                  "top-companies.csv",
-                  overview.top_companies.map((company) => ({
-                    name: company.name,
-                    events: company.events,
-                    users: company.users,
-                    cards: company.cards,
-                  }))
-                )
-              }
-            >
-              <Download className="w-3.5 h-3.5 mr-1.5" /> CSV
-            </Button>
-          </div>
-          {overview.top_companies.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No activity data for selected period.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={overview.top_companies}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" stroke="#6b7280" />
-                <YAxis stroke="#6b7280" />
-                <Tooltip />
-                <Bar dataKey="events" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </Card>
-
-        <Card className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-heading font-semibold text-foreground">Top Users by Activity</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                downloadCsv(
-                  "top-users.csv",
-                  overview.top_users.map((user) => ({
-                    name: user.name,
-                    email: user.email,
-                    role: user.role,
-                    company: user.company || "",
-                    events: user.events,
-                  }))
-                )
-              }
-            >
-              <Download className="w-3.5 h-3.5 mr-1.5" /> CSV
-            </Button>
-          </div>
-          {overview.top_users.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No user activity data for selected period.</p>
-          ) : (
-            <div className="space-y-2">
-              {overview.top_users.map((user) => (
-                <div key={user.user_id} className="rounded-lg border border-border p-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm text-foreground truncate">{user.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email} · {user.company || "No company"}</p>
+      {/* Top Companies */}
+      {overview.top_companies.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white border border-zinc-200 rounded-2xl p-6">
+          <p className="text-sm font-semibold text-zinc-900 mb-5">Top Companies by Events</p>
+          <div className="space-y-3">
+            {overview.top_companies.slice(0, 5).map(c => {
+              const pct = Math.round((c.events / maxCompanyEvents) * 100);
+              return (
+                <div key={c.company_id}>
+                  <div className="flex justify-between text-sm mb-1.5">
+                    <span className="text-zinc-700 font-medium">{c.name}</span>
+                    <span className="text-zinc-400 tabular-nums">{c.events} events</span>
                   </div>
-                  <div className="text-sm font-semibold text-foreground">{user.events}</div>
+                  <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ type: "spring", stiffness: 60, damping: 25, delay: 0.45 }} className="h-full bg-zinc-900 rounded-full" />
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Top Users */}
+      {overview.top_users.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-zinc-100">
+            <p className="text-sm font-semibold text-zinc-900">Top Users by Activity</p>
+          </div>
+          <div className="divide-y divide-zinc-100">
+            {overview.top_users.slice(0, 5).map(user => (
+              <div key={user.user_id} className="flex items-center justify-between px-6 py-3.5 hover:bg-zinc-50 transition-colors">
+                <div>
+                  <p className="text-sm font-medium text-zinc-900">{user.name}</p>
+                  <p className="text-xs text-zinc-400">{user.email}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-zinc-400 capitalize">{user.role?.replace("_", " ")}</span>
+                  <span className="text-xs font-semibold text-zinc-700 tabular-nums">{user.events} events</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 };

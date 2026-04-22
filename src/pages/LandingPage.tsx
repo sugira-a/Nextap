@@ -2,7 +2,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowRight, Smartphone, Share2, Users, Zap, Shield, BarChart3, Check } from "lucide-react";
+import { ArrowRight, CreditCard, Palette, Zap, Shield, BarChart3, Check, Smartphone, Share2, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import nfcCard from "@/assets/nfc-card-hero.png";
 
@@ -16,24 +16,21 @@ const LandingPage = () => (
     <Navbar />
 
     {/* Hero */}
-    <section className="container py-20 md:py-32">
-      <div className="grid md:grid-cols-2 gap-12 items-center">
+    <section className="container py-12 md:py-20">
+      <div className="grid md:grid-cols-2 gap-8 md:gap-10 items-center">
         <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
           <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent mb-6">
             The future of networking
           </span>
-          <h1 className="font-heading text-4xl md:text-6xl font-bold text-foreground leading-tight tracking-tight">
+          <h1 className="font-heading text-3xl md:text-5xl font-bold text-foreground leading-tight tracking-tight">
             Tap. Share.<br />Connect instantly.
           </h1>
-          <p className="text-lg text-muted-foreground mt-6 max-w-md">
+          <p className="text-base md:text-lg text-muted-foreground mt-5 max-w-md">
             Your digital business card, powered by NFC. Share your contact info, socials, and portfolio with a single tap.
           </p>
           <div className="flex flex-wrap gap-4 mt-8">
             <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
               <Link to="/register">Get Your Card <ArrowRight className="ml-2 w-4 h-4" /></Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link to="/u/demo">See Demo Profile</Link>
             </Button>
           </div>
         </motion.div>
@@ -50,20 +47,21 @@ const LandingPage = () => (
           <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground">How it works</h2>
           <p className="text-muted-foreground mt-3 max-w-lg mx-auto">Three simple steps to start sharing your professional identity.</p>
         </div>
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-6">
           {[
-            { step: "01", title: "Get Your Card", desc: "Order your custom NFC-enabled business card.", icon: Smartphone },
-            { step: "02", title: "Set Up Your Profile", desc: "Add your info, links, and customize your page.", icon: Share2 },
-            { step: "03", title: "Tap & Share", desc: "Tap your card on any phone to share instantly.", icon: Users },
+            { step: "01", title: "Get Your Card", desc: "Order your custom NFC-enabled business card.", icon: CreditCard },
+            { step: "02", title: "Set Up Your Profile", desc: "Add your info, links, and customize your page.", icon: Palette },
+            { step: "03", title: "Tap & Share", desc: "Tap your card on any phone to share instantly.", icon: Zap },
           ].map((item, i) => (
             <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}
-              className="bg-card border border-border rounded-xl p-8 text-center hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mx-auto mb-5">
-                <item.icon className="w-6 h-6 text-accent" />
+              className="group relative overflow-hidden rounded-2xl border border-border/80 bg-card/95 p-7 md:p-8 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent/60 via-accent to-accent/60 opacity-70" />
+              <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 ring-1 ring-accent/20 transition-colors duration-300 group-hover:bg-accent/15">
+                <item.icon className="h-6 w-6 text-accent" />
               </div>
-              <span className="text-xs font-mono text-muted-foreground">Step {item.step}</span>
-              <h3 className="font-heading font-semibold text-lg mt-2 text-foreground">{item.title}</h3>
-              <p className="text-sm text-muted-foreground mt-2">{item.desc}</p>
+              <span className="text-xs font-mono tracking-widest uppercase text-muted-foreground">Step {item.step}</span>
+              <h3 className="mt-3 font-heading text-xl font-semibold text-foreground">{item.title}</h3>
+              <p className="mt-3 text-base leading-relaxed text-muted-foreground">{item.desc}</p>
             </motion.div>
           ))}
         </div>

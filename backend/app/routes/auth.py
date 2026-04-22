@@ -101,6 +101,32 @@ def logout():
     return {'message': 'Logged out successfully'}, 200
 
 
+@bp.route('/change-password', methods=['POST'])
+def change_password():
+    """Change password for the authenticated user"""
+    user = get_jwt_user()
+    if not user:
+        return {'error': 'Not authenticated'}, 401
+
+    data = request.get_json() or {}
+    current_password = data.get('current_password', '')
+    new_password = data.get('new_password', '')
+
+    if not current_password or not new_password:
+        return {'error': 'Current and new password are required'}, 400
+
+    if not user.check_password(current_password):
+        return {'error': 'Current password is incorrect'}, 400
+
+    if len(new_password) < 8:
+        return {'error': 'New password must be at least 8 characters'}, 400
+
+    user.set_password(new_password)
+    db.session.commit()
+
+    return {'message': 'Password changed successfully'}, 200
+
+
 @bp.route('/me', methods=['DELETE'])
 def delete_current_user():
     """Delete the current authenticated user account."""

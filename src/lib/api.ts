@@ -38,6 +38,13 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     "Accept": "application/json",
     "Content-Type": "application/json",
   };
+
+  // Automatically add JWT token if available
+  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+  if (token) {
+    defaultHeaders["Authorization"] = `Bearer ${token}`;
+  }
+
   const expectsJson = path.startsWith("/api") || path.startsWith("/health");
 
   const requestCandidates = buildRequestCandidates(path);
@@ -78,6 +85,15 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
           typeof payload === "string"
             ? payload
             : payload.error || payload.message || "Request failed";
+
+        // Handle 401 Unauthorized - clear tokens and redirect to login
+        if (response.status === 401) {
+          clearAuthTokens();
+          if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+            window.location.href = "/login";
+          }
+          throw new Error("Authentication required");
+        }
 
         // If same-origin endpoint returns Not Found, try backend origin fallback.
         if (response.status === 404 && index < requestCandidates.length - 1) {

@@ -135,8 +135,10 @@ class Profile(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationship
+    # Relationships
     analytics_events = db.relationship('AnalyticsEvent', backref='profile')
+    shared_contacts = db.relationship('SharedContact', backref='profile', cascade='all, delete-orphan')
+    card_designs = db.relationship('CardDesign', backref='profile', cascade='all, delete-orphan', order_by='CardDesign.created_at')
     
     def to_dict(self, include_sensitive=False):
         """Serialize profile to dictionary"""
@@ -467,4 +469,64 @@ class AuditLog(db.Model):
             'target_id': self.target_id,
             'changes': self.changes,
             'timestamp': self.timestamp.isoformat() if self.timestamp else None
+        }
+
+
+class SharedContact(db.Model):
+    """Contact info shared by a visitor on a user's public profile page"""
+    __tablename__ = 'shared_contact'
+
+    id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
+    profile_id = db.Column(db.String(36), db.ForeignKey('profile.id'), nullable=False, index=True)
+
+    name = db.Column(db.String(255), nullable=False)
+    phone = db.Column(db.String(50))
+    email = db.Column(db.String(255))
+    company = db.Column(db.String(255))
+    note = db.Column(db.Text)
+
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'profile_id': self.profile_id,
+            'name': self.name,
+            'phone': self.phone,
+            'email': self.email,
+            'company': self.company,
+            'note': self.note,
+            'is_read': self.is_read,
+            'submitted_at': self.submitted_at.isoformat() if self.submitted_at else None,
+        }
+
+
+class CardDesign(db.Model):
+    """NFC card design saved from Profile Studio"""
+    __tablename__ = 'card_design'
+
+    id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
+    profile_id = db.Column(db.String(36), db.ForeignKey('profile.id'), nullable=False, index=True)
+
+    name = db.Column(db.String(255), nullable=False, default='My Design')
+    elements_json = db.Column(db.Text, nullable=False, default='[]')
+    bg_json = db.Column(db.Text, nullable=False, default='{}')
+    template_id = db.Column(db.String(64))
+    is_active = db.Column(db.Boolean, default=False, nullable=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        import json
+        return {
+            'id': self.id,
+            'name': self.name,
+            'elements': json.loads(self.elements_json or '[]'),
+            'bg': json.loads(self.bg_json or '{}'),
+            'template_id': self.template_id,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

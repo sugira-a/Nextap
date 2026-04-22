@@ -12,6 +12,7 @@ const Register = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -34,6 +35,7 @@ const Register = () => {
           password,
           first_name: firstName,
           last_name: lastName,
+          public_slug: username || undefined,
         }),
       });
 
@@ -79,15 +81,20 @@ const Register = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="name">Full Name</Label>
-            <Input id="name" placeholder="John Doe" value={name} onChange={e => setName(e.target.value)} className="mt-1.5" required />
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} autoComplete="name" className="mt-1.5" required />
+          </div>
+          <div>
+            <Label htmlFor="username">Username</Label>
+            <Input id="username" value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))} autoComplete="username" className="mt-1.5" placeholder="e.g. john-doe" required />
+            <p className="text-xs text-muted-foreground mt-1">Your public card URL: /u/{username || "your-username"}</p>
           </div>
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="mt-1.5" required />
+            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" className="mt-1.5" required />
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="mt-1.5" required />
+            <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" className="mt-1.5" required />
           </div>
           <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">Create Account</Button>
         </form>

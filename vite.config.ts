@@ -9,6 +9,16 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     proxy: {
+      "/_/backend/api": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/_\/backend/, ""),
+      },
+      "/_/backend/health": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/_\/backend/, ""),
+      },
       "/api": {
         target: "http://localhost:5000",
         changeOrigin: true,
