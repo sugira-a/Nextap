@@ -253,6 +253,17 @@ const PublicProfile = () => {
         if (profileRes.status === "fulfilled") {
           setProfile(profileRes.value.profile);
           setDisplayName(profileRes.value.user ? profileRes.value.user.first_name.trim().replace(/\b\w/g, (c: string) => c.toUpperCase()) : username.replace(/[-_]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()));
+          // Lazy-load heavy image fields after the profile renders
+          apiRequest<{ photo_url: string | null; background_image_url: string | null; body_background_image_url: string | null }>(`/api/profile/${username}/images`)
+            .then((imgs) => {
+              setProfile((prev) => prev ? {
+                ...prev,
+                photo_url: imgs.photo_url ?? prev.photo_url,
+                background_image_url: imgs.background_image_url ?? prev.background_image_url,
+                body_background_image_url: imgs.body_background_image_url ?? prev.body_background_image_url,
+              } : prev);
+            })
+            .catch(() => undefined);
         } else {
           toast.error("Profile not found");
         }
@@ -270,8 +281,33 @@ const PublicProfile = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center p-6 text-muted-foreground">
-        Loading profile...
+      <div className="min-h-screen bg-surface flex flex-col items-center">
+        <div className="w-full max-w-md bg-card min-h-screen shadow-2xl relative">
+          {/* Cover skeleton */}
+          <div className="h-44 bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+          {/* Avatar skeleton */}
+          <div className="flex justify-center -mt-16 relative z-10">
+            <div className="w-28 h-28 rounded-full border-4 border-card bg-zinc-300 dark:bg-zinc-700 animate-pulse shadow-xl" />
+          </div>
+          {/* Text skeletons */}
+          <div className="px-6 pt-4 space-y-3">
+            <div className="h-6 w-40 mx-auto rounded-lg bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+            <div className="h-4 w-28 mx-auto rounded-lg bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+            <div className="h-3 w-full rounded-lg bg-zinc-100 dark:bg-zinc-800 animate-pulse mt-2" />
+            <div className="h-3 w-4/5 mx-auto rounded-lg bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+            {/* Button skeletons */}
+            <div className="grid grid-cols-4 gap-2 pt-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-14 rounded-xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+              ))}
+            </div>
+            <div className="space-y-2 pt-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

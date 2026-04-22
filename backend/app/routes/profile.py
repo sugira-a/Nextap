@@ -7,6 +7,13 @@ from datetime import datetime
 bp = Blueprint('profile', __name__, url_prefix='/api/profile')
 
 
+def _strip_base64(value):
+    """Return None if value is a base64 data URL (can be several MB), keep plain URLs."""
+    if value and isinstance(value, str) and value.startswith('data:'):
+        return None
+    return value
+
+
 @bp.route('/<slug>', methods=['GET'])
 def get_public_profile(slug):
     """Get public profile by slug"""
@@ -28,15 +35,33 @@ def get_public_profile(slug):
         )
         db.session.add(event)
         db.session.commit()
-    
+
+    profile_data = profile.to_dict(include_sensitive=False)
+    # Strip large base64 blobs from the main response — load them lazily via /images endpoint
+    for field in ('photo_url', 'background_image_url', 'body_background_image_url'):
+        profile_data[field] = _strip_base64(profile_data.get(field))
+
     return {
-        'profile': profile.to_dict(include_sensitive=False),
+        'profile': profile_data,
         'user': {
             'id': profile.user.id,
             'first_name': profile.user.first_name,
             'last_name': profile.user.last_name,
             'role': profile.user.role
         } if profile.user else None
+    }, 200
+
+
+@bp.route('/<slug>/images', methods=['GET'])
+def get_public_profile_images(slug):
+    """Lazy-load heavy image fields (base64) separately so the main profile loads fast."""
+    profile = Profile.query.filter_by(public_slug=slug).first()
+    if not profile:
+        return {'error': 'Profile not found'}, 404
+    return {
+        'photo_url': profile.photo_url or None,
+        'background_image_url': profile.background_image_url or None,
+        'body_background_image_url': profile.body_background_image_url or None,
     }, 200
 
 

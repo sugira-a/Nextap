@@ -15,7 +15,7 @@ import {
   Phone, Mail, MessageCircle, Globe, Linkedin, Twitter, Instagram, WandSparkles,
   Undo2, Redo2, Image as ImageIcon, Layers3
 } from "lucide-react";
-import { DndContext, DragEndEvent, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -204,6 +204,9 @@ const EditProfile = () => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
     })
   );
 
@@ -495,7 +498,7 @@ const EditProfile = () => {
     }));
   };
 
-  const onLinkDragStart = (event: DragEvent<HTMLButtonElement>, linkId: string) => {
+  const onLinkDragStart = (event: React.DragEvent<HTMLButtonElement>, linkId: string) => {
     setDraggingLinkId(linkId);
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", linkId);
@@ -542,7 +545,7 @@ const EditProfile = () => {
     }));
   };
 
-  const onSectionDragStart = (event: DragEvent<HTMLDivElement>, sectionId: string) => {
+  const onSectionDragStart = (event: React.DragEvent<HTMLDivElement>, sectionId: string) => {
     setDraggingSectionId(sectionId);
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", sectionId);
@@ -581,7 +584,7 @@ const EditProfile = () => {
     }));
   };
 
-  const onCanvasDragStart = (event: DragEvent<HTMLDivElement>, blockId: string) => {
+  const onCanvasDragStart = (event: React.DragEvent<HTMLDivElement>, blockId: string) => {
     setDraggingCanvasBlockId(blockId);
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", blockId);
@@ -620,7 +623,7 @@ const EditProfile = () => {
     }));
   };
 
-  const onContactActionDragStart = (event: DragEvent<HTMLDivElement>, actionId: string) => {
+  const onContactActionDragStart = (event: React.DragEvent<HTMLDivElement>, actionId: string) => {
     setDraggingContactActionId(actionId);
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", actionId);
