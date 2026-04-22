@@ -166,7 +166,7 @@ const AdminCompanies = () => {
                 </div>
                 <div className="col-span-2 text-right">
                   <Link to={`/admin/companies/${company.id}`} className="text-xs font-medium text-zinc-500 hover:text-zinc-900 border border-zinc-200 px-3 py-1.5 rounded-lg transition-colors">
-                    View ->
+                    View →
                   </Link>
                 </div>
               </div>

@@ -197,7 +197,7 @@ const AdminCards = () => {
                 <div className="col-span-2 flex items-center gap-2">
                   <Link to={`/admin/cards/${card.id}`} className="font-mono text-sm font-semibold text-zinc-900 hover:text-zinc-600 transition-colors">{card.code}</Link>
                   <button onClick={() => copyText(card.code, card.code)} className="text-[10px] text-zinc-300 group-hover:text-zinc-400 transition-colors">
-                    {copied === card.code ? "âœ"" : "copy"}
+                    {copied === card.code ? "✓" : "copy"}
                   </button>
                 </div>
                 <div className="col-span-2">
