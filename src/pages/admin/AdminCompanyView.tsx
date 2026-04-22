@@ -227,7 +227,7 @@ const AdminCompanyView = () => {
         <div className="flex items-center gap-2">
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${data.company.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{data.company.status}</span>
           <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-500 capitalize">{data.company.plan}</span>
-          <Link to="/admin/companies" className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">â† Back</Link>
+          <Link to="/admin/companies" className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">← Back</Link>
           <button onClick={load} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Refresh</button>
           <button onClick={remove} disabled={deleting} className="text-sm border border-red-200 rounded-xl px-4 py-2.5 text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50">
             {deleting ? "Deleting..." : "Delete"}
@@ -305,7 +305,7 @@ const AdminCompanyView = () => {
         <div className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-4">
           <p className="text-sm font-semibold text-zinc-900 border-b border-zinc-100 pb-3">Details</p>
           <div className="space-y-3 text-sm">
-            <div><p className="text-xs text-zinc-400 mb-0.5">Created</p><p className="font-medium text-zinc-900">{data.company.created_at ? new Date(data.company.created_at).toLocaleDateString() : ""”"}</p></div>
+            <div><p className="text-xs text-zinc-400 mb-0.5">Created</p><p className="font-medium text-zinc-900">{data.company.created_at ? new Date(data.company.created_at).toLocaleDateString() : "-"}</p></div>
             <div><p className="text-xs text-zinc-400 mb-0.5">Slug</p><p className="font-mono text-zinc-900">/{data.company.slug}</p></div>
             <div className="pt-2">
               <div className="flex items-center gap-2 mb-2">

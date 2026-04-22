@@ -247,7 +247,7 @@ const AdminUserView = () => {
         <div className="flex items-center gap-2">
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${data.user.status === "active" ? "bg-emerald-50 text-emerald-700" : data.user.status === "suspended" ? "bg-red-50 text-red-600" : "bg-zinc-100 text-zinc-500"}`}>{data.user.status}</span>
           <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-500 capitalize">{data.user.role}</span>
-          <Link to="/admin/users" className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">â† Back</Link>
+          <Link to="/admin/users" className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">← Back</Link>
           <button onClick={load} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Refresh</button>
           <button onClick={remove} disabled={deleting} className="text-sm border border-red-200 rounded-xl px-4 py-2.5 text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50">
             {deleting ? "Deleting..." : "Delete"}
@@ -338,11 +338,11 @@ const AdminUserView = () => {
             <div>
               <p className="text-xs text-zinc-400 mb-0.5">Card</p>
               <p className="font-medium text-zinc-900 font-mono">{data.card?.code || "No card"}</p>
-              <p className="text-xs text-zinc-400 capitalize">{data.card?.status || ""”"}</p>
+              <p className="text-xs text-zinc-400 capitalize">{data.card?.status || "-"}</p>
             </div>
             <div>
               <p className="text-xs text-zinc-400 mb-0.5">Joined</p>
-              <p className="font-medium text-zinc-900">{data.user.created_at ? new Date(data.user.created_at).toLocaleDateString() : ""”"}</p>
+              <p className="font-medium text-zinc-900">{data.user.created_at ? new Date(data.user.created_at).toLocaleDateString() : "-"}</p>
             </div>
           </div>
         </div>

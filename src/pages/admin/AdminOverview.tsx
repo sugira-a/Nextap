@@ -158,7 +158,7 @@ const AdminOverview = () => {
                     <p className="text-xs text-zinc-400 mt-0.5 truncate">{item.actor?.email || "System"}</p>
                   </div>
                   <span className="text-xs text-zinc-300 ml-4 whitespace-nowrap tabular-nums">
-                    {item.timestamp ? new Date(item.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""”"}
+                    {item.timestamp ? new Date(item.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "-"}
                   </span>
                 </div>
               ))}
@@ -179,7 +179,7 @@ const AdminOverview = () => {
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
           <p className="text-sm font-semibold text-zinc-900">Recent Cards</p>
           <Link to="/admin/cards" className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors">
-            View all â†’
+            View all ->
           </Link>
         </div>
         <div className="divide-y divide-zinc-100">
@@ -219,7 +219,7 @@ const AdminOverview = () => {
             className="bg-white border border-zinc-200 rounded-xl px-4 py-4 flex items-center justify-between hover:bg-zinc-50 hover:border-zinc-400 transition-colors group"
           >
             <span className="text-sm font-medium text-zinc-700 group-hover:text-zinc-900">{link.label}</span>
-            <span className="text-zinc-300 group-hover:text-zinc-600 transition-colors">â†’</span>
+            <span className="text-zinc-300 group-hover:text-zinc-600 transition-colors">-></span>
           </Link>
         ))}
       </div>

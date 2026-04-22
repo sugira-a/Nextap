@@ -115,7 +115,7 @@ const AdminCardView = () => {
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${data.card.claim_status ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
             {data.card.claim_status ? "Claimed" : "Free"}
           </span>
-          <Link to="/admin/cards" className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">â† Back</Link>
+          <Link to="/admin/cards" className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">← Back</Link>
           <button onClick={load} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Refresh</button>
         </div>
       </div>
@@ -148,12 +148,12 @@ const AdminCardView = () => {
           </div>
           <div className="flex gap-2">
             <button onClick={() => { navigator.clipboard.writeText(publicUrl); toast.success("Link copied"); }} className="text-sm border border-zinc-200 rounded-xl px-4 py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">Copy Link</button>
-            <a href={publicUrl} target="_blank" rel="noreferrer" className="text-sm border border-zinc-200 rounded-xl px-4 py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">Open Public Route â†—</a>
+            <a href={publicUrl} target="_blank" rel="noreferrer" className="text-sm border border-zinc-200 rounded-xl px-4 py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">Open Public Route ↗</a>
           </div>
           <div className="grid sm:grid-cols-2 gap-4 pt-2">
             <div className="bg-zinc-50 rounded-xl p-4">
               <p className="text-xs text-zinc-400 mb-1">Company</p>
-              <p className="text-sm font-medium text-zinc-900">{data.company?.name || ""”"}</p>
+              <p className="text-sm font-medium text-zinc-900">{data.company?.name || "-"}</p>
             </div>
             <div className="bg-zinc-50 rounded-xl p-4">
               <p className="text-xs text-zinc-400 mb-1">Assigned User</p>
@@ -167,7 +167,7 @@ const AdminCardView = () => {
           </div>
           <div className="bg-zinc-50 rounded-xl p-4">
             <p className="text-xs text-zinc-400 mb-1">Created</p>
-            <p className="text-sm text-zinc-700">{data.card.created_at ? new Date(data.card.created_at).toLocaleString() : ""”"}</p>
+            <p className="text-sm text-zinc-700">{data.card.created_at ? new Date(data.card.created_at).toLocaleString() : "-"}</p>
           </div>
         </div>
 
@@ -190,7 +190,7 @@ const AdminCardView = () => {
               <div key={event.id} className="px-6 py-3.5 hover:bg-zinc-50 transition-colors">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium text-zinc-900 capitalize">{event.event_type}</p>
-                  <p className="text-xs text-zinc-400">{event.timestamp ? new Date(event.timestamp).toLocaleString() : ""”"}</p>
+                  <p className="text-xs text-zinc-400">{event.timestamp ? new Date(event.timestamp).toLocaleString() : "-"}</p>
                 </div>
                 <p className="text-xs text-zinc-400 mt-0.5">
                   {[event.device_type, event.browser, event.os].filter(Boolean).join(" Â· ") || "Unknown device"}

@@ -199,7 +199,7 @@ const CompanyOverview = () => {
             className="bg-white border border-zinc-200 rounded-xl px-4 py-4 flex items-center justify-between hover:bg-zinc-50 hover:border-zinc-400 transition-colors group"
           >
             <span className="text-sm font-medium text-zinc-700 group-hover:text-zinc-900">{link.label}</span>
-            <span className="text-zinc-300 group-hover:text-zinc-600 transition-colors">â†’</span>
+            <span className="text-zinc-300 group-hover:text-zinc-600 transition-colors">-></span>
           </Link>
         ))}
       </div>

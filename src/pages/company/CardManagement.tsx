@@ -183,7 +183,7 @@ const CardManagement = () => {
                     onClick={() => copyCode(card.code)}
                     className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
                   >
-                    {copied === card.code ? "âœ“" : "Copy"}
+                    {copied === card.code ? "âœ"" : "Copy"}
                   </button>
                 </div>
                 <div className="col-span-2">
