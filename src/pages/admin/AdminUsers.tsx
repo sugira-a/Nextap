@@ -129,6 +129,7 @@ const AdminUsers = () => {
                 <option value="">No company</option>
                 {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
+            </div>
           </div>
           <div className="flex gap-2 flex-col-reverse sm:flex-row">
             <button onClick={() => setShowInvite(false)} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Cancel</button>
