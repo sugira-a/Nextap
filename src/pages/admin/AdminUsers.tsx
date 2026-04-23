@@ -84,13 +84,13 @@ const AdminUsers = () => {
       className="max-w-5xl mx-auto space-y-8 py-2"
     >
       {/* Header */}
-      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between border-b border-zinc-200 pb-6 gap-4 sm:gap-0">
         <div>
           <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Admin</p>
           <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Users</h1>
           <p className="text-sm text-zinc-400 mt-1">{users.length} total</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-col-reverse sm:flex-row">
           <button onClick={exportUsers} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Export CSV</button>
           <button onClick={() => setShowInvite(f => !f)} className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors">
             {showInvite ? "Cancel" : "Invite User"}
@@ -100,9 +100,9 @@ const AdminUsers = () => {
 
       {/* Invite form */}
       {showInvite && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-4">
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-zinc-200 rounded-2xl p-4 sm:p-6 space-y-4">
           <p className="text-sm font-semibold text-zinc-900">Invite User</p>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">First Name</label>
               <input value={inviteFirstName} onChange={e => setInviteFirstName(e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-zinc-500 transition-colors" />
@@ -129,16 +129,18 @@ const AdminUsers = () => {
                 <option value="">No company</option>
                 {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-            </div>
           </div>
-          <button onClick={inviteUser} disabled={inviting} className="bg-zinc-900 text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50">
-            {inviting ? "Inviting..." : "Invite"}
-          </button>
+          <div className="flex gap-2 flex-col-reverse sm:flex-row">
+            <button onClick={() => setShowInvite(false)} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Cancel</button>
+            <button onClick={inviteUser} disabled={inviting} className="bg-zinc-900 text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50">
+              {inviting ? "Inviting..." : "Invite"}
+            </button>
+          </div>
         </motion.div>
       )}
 
       {/* Filters */}
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
         <input
           type="text"
           placeholder="Search users..."
@@ -146,49 +148,75 @@ const AdminUsers = () => {
           onChange={e => setSearch(e.target.value)}
           className="flex-1 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
         />
-        <div className="flex gap-1.5 bg-zinc-100 rounded-lg p-1">
+        <div className="flex gap-1.5 bg-zinc-100 rounded-lg p-1 overflow-x-auto sm:overflow-visible">
           {["all", "active", "inactive", "suspended"].map(v => (
-            <button key={v} onClick={() => setFilter(v)} className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors capitalize ${filter === v ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}>{v}</button>
+            <button key={v} onClick={() => setFilter(v)} className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors capitalize shrink-0 ${filter === v ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}>{v}</button>
           ))}
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table / Cards View */}
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-40"><div className="w-5 h-5 rounded-full border-2 border-zinc-900 border-t-transparent animate-spin" /></div>
         ) : filteredUsers.length === 0 ? (
           <div className="flex items-center justify-center h-40 text-sm text-zinc-400">No users found</div>
         ) : (
-          <div className="divide-y divide-zinc-100">
-            <div className="grid grid-cols-12 px-6 py-3 bg-zinc-50 border-b border-zinc-100">
-              <span className="col-span-4 text-xs font-medium text-zinc-400 uppercase tracking-wide">User</span>
-              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Role</span>
-              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Status</span>
-              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Company</span>
-              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide text-right">Action</span>
-            </div>
-            {filteredUsers.map(user => (
-              <div key={user.id} className="grid grid-cols-12 px-6 py-3.5 hover:bg-zinc-50 transition-colors items-center">
-                <div className="col-span-4">
-                  <p className="text-sm font-medium text-zinc-900">{user.first_name} {user.last_name}</p>
-                  <p className="text-xs text-zinc-400">{user.email}</p>
-                </div>
-                <div className="col-span-2 text-sm text-zinc-500 capitalize">{user.role?.replace("_", " ")}</div>
-                <div className="col-span-2">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
-                    user.status === "active" ? "bg-emerald-50 text-emerald-700" :
-                    user.status === "suspended" ? "bg-red-50 text-red-600" :
-                    "bg-zinc-100 text-zinc-500"
-                  }`}>{user.status}</span>
-                </div>
-                <div className="col-span-2 text-xs text-zinc-400">{user.company?.name || "-"}</div>
-                <div className="col-span-2 text-right">
-                  <Link to={`/admin/users/${user.id}`} className="text-xs font-medium text-zinc-500 hover:text-zinc-900 border border-zinc-200 px-3 py-1.5 rounded-lg transition-colors">View →</Link>
-                </div>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block divide-y divide-zinc-100">
+              <div className="grid grid-cols-12 px-6 py-3 bg-zinc-50 border-b border-zinc-100">
+                <span className="col-span-4 text-xs font-medium text-zinc-400 uppercase tracking-wide">User</span>
+                <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Role</span>
+                <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Status</span>
+                <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Company</span>
+                <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide text-right">Action</span>
               </div>
-            ))}
-          </div>
+              {filteredUsers.map(user => (
+                <div key={user.id} className="grid grid-cols-12 px-6 py-3.5 hover:bg-zinc-50 transition-colors items-center">
+                  <div className="col-span-4">
+                    <p className="text-sm font-medium text-zinc-900">{user.first_name} {user.last_name}</p>
+                    <p className="text-xs text-zinc-400">{user.email}</p>
+                  </div>
+                  <div className="col-span-2 text-sm text-zinc-500 capitalize">{user.role?.replace("_", " ")}</div>
+                  <div className="col-span-2">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
+                      user.status === "active" ? "bg-emerald-50 text-emerald-700" :
+                      user.status === "suspended" ? "bg-red-50 text-red-600" :
+                      "bg-zinc-100 text-zinc-500"
+                    }`}>{user.status}</span>
+                  </div>
+                  <div className="col-span-2 text-xs text-zinc-400">{user.company?.name || "-"}</div>
+                  <div className="col-span-2 text-right">
+                    <Link to={`/admin/users/${user.id}`} className="text-xs font-medium text-zinc-500 hover:text-zinc-900 border border-zinc-200 px-3 py-1.5 rounded-lg transition-colors">View →</Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-zinc-100">
+              {filteredUsers.map(user => (
+                <Link key={user.id} to={`/admin/users/${user.id}`} className="block p-4 hover:bg-zinc-50 transition-colors">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-zinc-900">{user.first_name} {user.last_name}</p>
+                      <p className="text-xs text-zinc-400 truncate">{user.email}</p>
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize shrink-0 ${
+                      user.status === "active" ? "bg-emerald-50 text-emerald-700" :
+                      user.status === "suspended" ? "bg-red-50 text-red-600" :
+                      "bg-zinc-100 text-zinc-500"
+                    }`}>{user.status}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-zinc-500 gap-2">
+                    <span className="capitalize">{user.role?.replace("_", " ")}</span>
+                    <span className="text-zinc-400">{user.company?.name || "-"}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </motion.div>

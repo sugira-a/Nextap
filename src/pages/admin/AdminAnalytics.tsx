@@ -127,18 +127,18 @@ const AdminAnalytics = () => {
       className="max-w-5xl mx-auto space-y-8 py-2"
     >
       {/* Header */}
-      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between border-b border-zinc-200 pb-6 gap-4 sm:gap-0">
         <div>
           <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Admin</p>
           <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Analytics</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <div className="flex gap-1.5">
             {[7, 14, 30].map(d => (
               <button key={d} onClick={() => setDays(d)} className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${days === d ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"}`}>{d}d</button>
             ))}
           </div>
-          {overview.company_options.length > 0 && (
+          {overview?.company_options.length > 0 && (
             <select
               value={companyId}
               onChange={e => setCompanyId(e.target.value)}
@@ -164,9 +164,9 @@ const AdminAnalytics = () => {
       </div>
 
       {/* Weekly chart + Status */}
-      <div className="grid lg:grid-cols-5 gap-6">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6">
-          <p className="text-sm font-semibold text-zinc-900 mb-6">Events "" Last 7 Days</p>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="sm:col-span-1 lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6">
+          <p className="text-sm font-semibold text-zinc-900 mb-6">Events — Last 7 Days</p>
           {eventsByDay.length > 0 ? (
             <>
               <div className="flex items-end gap-2 h-36">
@@ -181,7 +181,7 @@ const AdminAnalytics = () => {
           ) : <div className="h-36 flex items-center justify-center text-sm text-zinc-400">No data</div>}
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="sm:col-span-1 lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6">
           <p className="text-sm font-semibold text-zinc-900 mb-5">Status Breakdown</p>
           <div className="space-y-3">
             {Object.entries(overview.status_breakdown).map(([label, count]) => {

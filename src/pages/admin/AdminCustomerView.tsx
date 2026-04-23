@@ -2,8 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { ArrowLeft, RefreshCw, Save, UserCircle2, ShieldCheck, BriefcaseBusiness, Link2 } from "lucide-react";
 
 import { apiRequest } from "@/lib/api";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 type CustomerDetails = {
   customer: {
@@ -153,42 +158,48 @@ const AdminCustomerView = () => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <Button variant="outline" size="sm" asChild>
-          <Link to="/admin/customers">
-            <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back to Customers
+      {/* Header Section */}
+      <div className="space-y-4">
+        <Button variant="ghost" size="sm" asChild className="h-8">
+          <Link to="/admin/customers" className="text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Customers
           </Link>
         </Button>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={load}>
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
-          </Button>
-          <Button size="sm" onClick={save} disabled={saving}>
-            <Save className="w-3.5 h-3.5 mr-1.5" /> {saving ? "Saving..." : "Save Changes"}
-          </Button>
+        
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex-1" />
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={load} className="h-9">
+              <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+            </Button>
+            <Button size="sm" onClick={save} disabled={saving} className="h-9">
+              <Save className="w-4 h-4 mr-2" /> {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
         </div>
       </div>
 
-      <Card className="p-6">
+      {/* Customer Identity Card */}
+      <Card className="p-4 sm:p-6 border-0 shadow-sm">
         <div className="flex items-start gap-4">
           {form.photo_url ? (
-            <img src={form.photo_url} alt="Profile" className="h-16 w-16 rounded-full object-cover border border-border" />
+            <img src={form.photo_url} alt="Profile" className="h-16 w-16 rounded-full object-cover border border-border shrink-0" />
           ) : (
-            <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center border border-border">
+            <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center border border-border shrink-0">
               <UserCircle2 className="w-8 h-8 text-muted-foreground" />
             </div>
           )}
-          <div className="space-y-2 min-w-0">
+          <div className="space-y-2 min-w-0 flex-1">
             <div>
-              <h1 className="font-heading text-2xl font-bold text-foreground">
+              <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground line-clamp-2">
                 {data.user.first_name} {data.user.last_name}
               </h1>
-              <p className="text-sm text-muted-foreground truncate">{data.user.email}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{data.user.email}</p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs items-center">
               <Badge className="capitalize">{data.user.role}</Badge>
               <Badge variant="secondary" className="capitalize">{data.user.status}</Badge>
-              <span className="text-muted-foreground flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> /{data.profile?.public_slug || "-"}</span>
+              <span className="text-muted-foreground flex items-center gap-1 text-xs"><ShieldCheck className="w-3.5 h-3.5" /> /{data.profile?.public_slug || "-"}</span>
             </div>
           </div>
         </div>

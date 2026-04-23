@@ -313,8 +313,23 @@ const PublicProfile = () => {
   }
 
   const handleSaveContact = () => {
-    const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${displayName}\nTITLE:${profile.title || ''}\nTEL:${profile.phone || ''}\nEMAIL:${profile.email_public || ''}\nURL:${profile.website || ''}\nNOTE:${profile.bio || ''}\nEND:VCARD`;
-    const blob = new Blob([vcard], { type: "text/vcard" });
+    const vcard = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      `FN:${displayName}`,
+      profile.title ? `TITLE:${profile.title}` : "",
+      profile.phone ? `TEL;TYPE=CELL:${profile.phone}` : "",
+      profile.whatsapp ? `TEL;TYPE=WORK:${profile.whatsapp}` : "",
+      profile.email_public ? `EMAIL:${profile.email_public}` : "",
+      profile.website ? `URL:${profile.website.startsWith("http") ? profile.website : "https://" + profile.website}` : "",
+      profile.location ? `ADR;TYPE=WORK:;;${profile.location};;;;` : "",
+      profile.linkedin_url ? `X-SOCIALPROFILE;type=linkedin:${profile.linkedin_url}` : "",
+      profile.twitter_url ? `X-SOCIALPROFILE;type=twitter:${profile.twitter_url}` : "",
+      profile.instagram_url ? `X-SOCIALPROFILE;type=instagram:${profile.instagram_url}` : "",
+      profile.bio ? `NOTE:${profile.bio}` : "",
+      "END:VCARD",
+    ].filter(Boolean).join("\r\n");
+    const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

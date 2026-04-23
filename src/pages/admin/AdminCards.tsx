@@ -128,13 +128,13 @@ const AdminCards = () => {
       className="max-w-5xl mx-auto space-y-8 py-2"
     >
       {/* Header */}
-      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between border-b border-zinc-200 pb-6 gap-4 sm:gap-0">
         <div>
           <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Admin</p>
           <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Cards</h1>
           <p className="text-sm text-zinc-400 mt-1">{cards.length} total</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           <input
             type="number"
             min={1}
@@ -145,14 +145,14 @@ const AdminCards = () => {
           />
           <button onClick={printCardSheet} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Print</button>
           <button onClick={exportCards} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Export CSV</button>
-          <button onClick={generateCards} disabled={generating} className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50">
+          <button onClick={generateCards} disabled={generating} className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50 shrink-0">
             {generating ? "Generating..." : "Generate Cards"}
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
         <select
           value={companyFilter}
           onChange={e => setCompanyFilter(e.target.value)}
@@ -169,80 +169,131 @@ const AdminCards = () => {
           onKeyDown={e => e.key === "Enter" && fetchCards()}
           className="flex-1 min-w-48 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
         />
-        <div className="flex gap-1.5 bg-zinc-100 rounded-lg p-1 flex-wrap">
+        <div className="flex gap-1.5 bg-zinc-100 rounded-lg p-1 overflow-x-auto sm:overflow-visible flex-wrap sm:flex-nowrap">
           {["all", "claimed", "unclaimed", "assigned", "unassigned", "active", "suspended", "retired"].map(v => (
-            <button key={v} onClick={() => setFilter(v)} className={`text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors capitalize ${filter === v ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}>{v}</button>
+            <button key={v} onClick={() => setFilter(v)} className={`text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors capitalize shrink-0 ${filter === v ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}>{v}</button>
           ))}
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table / Cards View */}
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-40"><div className="w-5 h-5 rounded-full border-2 border-zinc-900 border-t-transparent animate-spin" /></div>
         ) : filteredCards.length === 0 ? (
           <div className="flex items-center justify-center h-40 text-sm text-zinc-400">No cards found</div>
         ) : (
-          <div className="divide-y divide-zinc-100">
-            <div className="grid grid-cols-12 px-6 py-3 bg-zinc-50 border-b border-zinc-100">
-              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Code</span>
-              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Status</span>
-              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Claimed</span>
-              <span className="col-span-3 text-xs font-medium text-zinc-400 uppercase tracking-wide">Assigned User</span>
-              <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Created</span>
-              <span className="col-span-1 text-xs font-medium text-zinc-400 uppercase tracking-wide text-right">QR</span>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block divide-y divide-zinc-100">
+              <div className="grid grid-cols-12 px-6 py-3 bg-zinc-50 border-b border-zinc-100">
+                <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Code</span>
+                <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Status</span>
+                <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Claimed</span>
+                <span className="col-span-3 text-xs font-medium text-zinc-400 uppercase tracking-wide">Assigned User</span>
+                <span className="col-span-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Created</span>
+                <span className="col-span-1 text-xs font-medium text-zinc-400 uppercase tracking-wide text-right">QR</span>
+              </div>
+              {filteredCards.map(card => (
+                <div key={card.id} className="grid grid-cols-12 px-6 py-3.5 hover:bg-zinc-50 transition-colors items-center group">
+                  <div className="col-span-2 flex items-center gap-2">
+                    <Link to={`/admin/cards/${card.id}`} className="font-mono text-sm font-semibold text-zinc-900 hover:text-zinc-600 transition-colors">{card.code}</Link>
+                    <button onClick={() => copyText(card.code, card.code)} className="text-[10px] text-zinc-300 group-hover:text-zinc-400 transition-colors">
+                      {copied === card.code ? "✓" : "copy"}
+                    </button>
+                  </div>
+                  <div className="col-span-2">
+                    <select
+                      value={card.status}
+                      onChange={e => updateStatus(card.id, e.target.value)}
+                      disabled={card.claim_status}
+                      className={`text-xs font-medium px-2 py-1 rounded-full border-0 outline-none cursor-pointer disabled:cursor-default ${
+                        card.status === "active" ? "bg-emerald-50 text-emerald-700" :
+                        card.status === "suspended" ? "bg-red-50 text-red-600" :
+                        card.status === "retired" ? "bg-zinc-200 text-zinc-500" :
+                        "bg-zinc-100 text-zinc-500"
+                      }`}
+                    >
+                      {["active", "unassigned", "assigned", "suspended", "retired"].map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${card.claim_status ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
+                      {card.claim_status ? "Claimed" : "Free"}
+                    </span>
+                  </div>
+                  <div className="col-span-3 text-sm min-w-0">
+                    {card.assigned_user ? (
+                      <Link to={`/admin/users/${card.assigned_user.id}`} className="hover:text-zinc-600 transition-colors">
+                        <p className="text-zinc-900 font-medium truncate">{card.assigned_user.first_name} {card.assigned_user.last_name}</p>
+                        <p className="text-xs text-zinc-400 truncate">{card.assigned_user.email}</p>
+                      </Link>
+                    ) : <span className="text-xs text-zinc-400">Unassigned</span>}
+                  </div>
+                  <div className="col-span-2 text-xs text-zinc-400">
+                    {card.created_at ? new Date(card.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "-"}
+                  </div>
+                  <div className="col-span-1 text-right">
+                    <button
+                      onClick={() => setQrCard(card)}
+                      className="text-xs text-zinc-400 hover:text-zinc-700 border border-zinc-200 px-2 py-1 rounded-lg transition-colors"
+                      title="View QR"
+                    >
+                      QR
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-            {filteredCards.map(card => (
-              <div key={card.id} className="grid grid-cols-12 px-6 py-3.5 hover:bg-zinc-50 transition-colors items-center group">
-                <div className="col-span-2 flex items-center gap-2">
-                  <Link to={`/admin/cards/${card.id}`} className="font-mono text-sm font-semibold text-zinc-900 hover:text-zinc-600 transition-colors">{card.code}</Link>
-                  <button onClick={() => copyText(card.code, card.code)} className="text-[10px] text-zinc-300 group-hover:text-zinc-400 transition-colors">
-                    {copied === card.code ? "✓" : "copy"}
-                  </button>
-                </div>
-                <div className="col-span-2">
-                  <select
-                    value={card.status}
-                    onChange={e => updateStatus(card.id, e.target.value)}
-                    disabled={card.claim_status}
-                    className={`text-xs font-medium px-2 py-1 rounded-full border-0 outline-none cursor-pointer disabled:cursor-default ${
-                      card.status === "active" ? "bg-emerald-50 text-emerald-700" :
-                      card.status === "suspended" ? "bg-red-50 text-red-600" :
-                      card.status === "retired" ? "bg-zinc-200 text-zinc-500" :
-                      "bg-zinc-100 text-zinc-500"
-                    }`}
-                  >
-                    {["active", "unassigned", "assigned", "suspended", "retired"].map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div className="col-span-2">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${card.claim_status ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
-                    {card.claim_status ? "Claimed" : "Free"}
-                  </span>
-                </div>
-                <div className="col-span-3 text-sm min-w-0">
-                  {card.assigned_user ? (
-                    <Link to={`/admin/users/${card.assigned_user.id}`} className="hover:text-zinc-600 transition-colors">
-                      <p className="text-zinc-900 font-medium truncate">{card.assigned_user.first_name} {card.assigned_user.last_name}</p>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-zinc-100">
+              {filteredCards.map(card => (
+                <div key={card.id} className="p-4 hover:bg-zinc-50 transition-colors space-y-3">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="min-w-0 flex-1">
+                      <Link to={`/admin/cards/${card.id}`} className="font-mono text-sm font-semibold text-zinc-900 hover:text-zinc-600 transition-colors block truncate">{card.code}</Link>
+                      <p className="text-xs text-zinc-400 mt-1">{card.created_at ? new Date(card.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "-"}</p>
+                    </div>
+                    <button
+                      onClick={() => setQrCard(card)}
+                      className="text-xs text-zinc-400 hover:text-zinc-700 border border-zinc-200 px-2.5 py-1.5 rounded-lg transition-colors shrink-0"
+                      title="View QR"
+                    >
+                      QR
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <select
+                      value={card.status}
+                      onChange={e => updateStatus(card.id, e.target.value)}
+                      disabled={card.claim_status}
+                      className={`text-xs font-medium px-2 py-1 rounded-full border-0 outline-none cursor-pointer disabled:cursor-default ${
+                        card.status === "active" ? "bg-emerald-50 text-emerald-700" :
+                        card.status === "suspended" ? "bg-red-50 text-red-600" :
+                        card.status === "retired" ? "bg-zinc-200 text-zinc-500" :
+                        "bg-zinc-100 text-zinc-500"
+                      }`}
+                    >
+                      {["active", "unassigned", "assigned", "suspended", "retired"].map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${card.claim_status ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
+                      {card.claim_status ? "Claimed" : "Free"}
+                    </span>
+                  </div>
+                  {card.assigned_user && (
+                    <Link to={`/admin/users/${card.assigned_user.id}`} className="block text-xs hover:text-zinc-600 transition-colors">
+                      <p className="text-zinc-900 font-medium">{card.assigned_user.first_name} {card.assigned_user.last_name}</p>
                       <p className="text-xs text-zinc-400 truncate">{card.assigned_user.email}</p>
                     </Link>
-                  ) : <span className="text-xs text-zinc-400">Unassigned</span>}
-                </div>
-                <div className="col-span-2 text-xs text-zinc-400">
-                  {card.created_at ? new Date(card.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "-"}
-                </div>
-                <div className="col-span-1 text-right">
-                  <button
-                    onClick={() => setQrCard(card)}
-                    className="text-xs text-zinc-400 hover:text-zinc-700 border border-zinc-200 px-2 py-1 rounded-lg transition-colors"
-                    title="View QR"
-                  >
-                    QR
+                  )}
+                  <button onClick={() => copyText(card.code, card.code)} className="w-full text-xs border border-zinc-200 rounded-lg py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">
+                    {copied === card.code ? "✓ Copied" : "Copy Code"}
                   </button>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 

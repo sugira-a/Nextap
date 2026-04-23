@@ -12,9 +12,9 @@ const DashboardLayout = () => {
     <div className={isProfileStudio ? "flex h-screen w-full bg-[#f5f5f7] overflow-hidden" : "flex min-h-screen w-full bg-[#f5f5f7]"}>
       <DashboardSidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
-      <div className="flex flex-col flex-1 min-w-0">
-        {/* Mobile top bar */}
-        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200 sticky top-0 z-40">
+      <div className={`flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden ${isProfileStudio ? "" : ""}`}>
+        {/* Mobile top bar — hidden on Profile Studio so the studio fills the full screen */}
+        <header className={`flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200 sticky top-0 z-40 ${isProfileStudio ? "hidden" : "md:hidden"}`}>
           <Link to="/" className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-zinc-900 flex items-center justify-center">
               <span className="text-white font-bold text-xs">N</span>

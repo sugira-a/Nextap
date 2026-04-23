@@ -105,13 +105,13 @@ const AdminOverview = () => {
       </div>
 
       {/* Roles + Activity */}
-      <div className="grid lg:grid-cols-5 gap-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Roles */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6"
+          className="sm:col-span-1 lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6"
         >
           <p className="text-sm font-semibold text-zinc-900 mb-5">System Roles</p>
           <div className="space-y-3">
@@ -143,7 +143,7 @@ const AdminOverview = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6"
+          className="sm:col-span-1 lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6"
         >
           <p className="text-sm font-semibold text-zinc-900 mb-4">Recent Activity</p>
           {logs.length > 0 ? (

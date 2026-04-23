@@ -548,6 +548,10 @@ export default function ProfileStudioProfessional() {
   const [mobileLeftOpen, setMobileLeftOpen] = useState(false);
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
   const [stageScale, setStageScale] = useState(1);
+  const [savingDesignId, setSavingDesignId] = useState<string | null>(null);
+  const [deletingDesignId, setDeletingDesignId] = useState<string | null>(null);
+  const [renamingDesignId, setRenamingDesignId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   const stageHostRef = useRef<HTMLDivElement>(null);
   const canvasRef      = useRef<HTMLDivElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -803,19 +807,38 @@ export default function ProfileStudioProfessional() {
   const saveCurrentDesign = async () => {
     const name = saveNameInput.trim() || `Design ${savedDesigns.length + 1}`;
     const token = localStorage.getItem("access_token");
+    setSavingDesignId("new");
     try {
+      // Optimistic update
+      const optimisticDesign: SavedDesign = {
+        id: `temp-${Date.now()}`,
+        name,
+        elements,
+        bg,
+        templateId: activeTemplate,
+        timestamp: Date.now(),
+        isActive: false,
+      };
+      setSavedDesigns((prev) => [optimisticDesign, ...prev]);
+      setSaveNameInput("");
+      setLeftTab("saved");
+
       const res = await apiRequest<{ design: ApiDesign }>("/api/designs", {
         method: "POST",
         headers: { Authorization: `Bearer ${token ?? ""}` },
         body: JSON.stringify({ name, elements, bg, template_id: activeTemplate }),
       });
       const saved = apiDesignToSaved(res.design);
-      setSavedDesigns((prev) => [saved, ...prev]);
-      setSaveNameInput("");
+      // Replace optimistic with real design
+      setSavedDesigns((prev) => prev.map((d) => d.id === optimisticDesign.id ? saved : d));
       toast.success(`"${name}" saved!`);
-      setLeftTab("saved");
-    } catch {
+    } catch (error) {
+      // Rollback on error
+      setSavedDesigns((prev) => prev.filter((d) => !d.id.startsWith("temp-")));
+      setSaveNameInput("");
       toast.error("Failed to save design.");
+    } finally {
+      setSavingDesignId(null);
     }
   };
 
@@ -830,15 +853,29 @@ export default function ProfileStudioProfessional() {
 
   const deleteDesign = async (id: string) => {
     const token = localStorage.getItem("access_token");
+    const designToDelete = savedDesigns.find((d) => d.id === id);
+    if (!designToDelete) return;
+    
+    setConfirmDelete(null);
+    setDeletingDesignId(id);
+    const previousDesigns = savedDesigns;
+    
     try {
+      // Optimistic update
+      setSavedDesigns((prev) => prev.filter((d) => d.id !== id));
+      if (activeDesignId === id) setActiveDesignId(null);
+      
       await apiRequest(`/api/designs/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token ?? ""}` },
       });
-      setSavedDesigns((prev) => prev.filter((d) => d.id !== id));
-      if (activeDesignId === id) setActiveDesignId(null);
-    } catch {
+      toast.success(`"${designToDelete.name}" deleted!`);
+    } catch (error) {
+      // Rollback on error
+      setSavedDesigns(previousDesigns);
       toast.error("Failed to delete design.");
+    } finally {
+      setDeletingDesignId(null);
     }
   };
 
@@ -869,16 +906,28 @@ export default function ProfileStudioProfessional() {
 
   const renameDesign = async (id: string, newName: string) => {
     const token = localStorage.getItem("access_token");
+    setRenamingDesignId(id);
+    const previousName = savedDesigns.find((d) => d.id === id)?.name || "";
+    
     try {
+      // Optimistic update
+      setSavedDesigns((prev) => prev.map((d) => d.id === id ? { ...d, name: newName } : d));
+      setEditingDesignId(null);
+      
       const res = await apiRequest<{ design: ApiDesign }>(`/api/designs/${id}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token ?? ""}` },
         body: JSON.stringify({ name: newName }),
       });
       setSavedDesigns((prev) => prev.map((d) => d.id === id ? { ...d, name: res.design.name } : d));
-      setEditingDesignId(null);
-    } catch {
+      toast.success("Design renamed!");
+    } catch (error) {
+      // Rollback on error
+      setSavedDesigns((prev) => prev.map((d) => d.id === id ? { ...d, name: previousName } : d));
+      setEditingDesignId(id);
       toast.error("Failed to rename design.");
+    } finally {
+      setRenamingDesignId(null);
     }
   };
 
@@ -907,19 +956,24 @@ export default function ProfileStudioProfessional() {
     const address = iconRows.find((e) => e.iconName === "MapPin")?.text ?? "";
     const linkedin = iconRows.find((e) => e.iconName === "Linkedin")?.text ?? "";
     const twitter  = iconRows.find((e) => e.iconName === "Twitter")?.text ?? "";
+    const instagram = iconRows.find((e) => e.iconName === "Instagram")?.text ?? "";
+    const youtube = iconRows.find((e) => e.iconName === "Youtube")?.text ?? "";
 
+    // Build comprehensive vCard with all fields
     const lines = [
       "BEGIN:VCARD",
       "VERSION:3.0",
-      `FN:${name}`,
-      `TITLE:${title}`,
-      phone   ? `TEL;TYPE=CELL:${phone}` : "",
-      wa      ? `TEL;TYPE=WORK:${wa}`    : "",
-      email   ? `EMAIL:${email}`         : "",
+      name ? `FN:${name}` : "FN:Contact",
+      title ? `TITLE:${title}` : "",
+      phone ? `TEL;TYPE=CELL:${phone}` : "",
+      wa ? `TEL;TYPE=WORK:${wa}` : "",
+      email ? `EMAIL:${email}` : "",
       website ? `URL:${website.startsWith("http") ? website : "https://" + website}` : "",
+      address ? `ADR;TYPE=WORK:;;${address};;;;` : "",
       linkedin ? `X-SOCIALPROFILE;type=linkedin:${linkedin}` : "",
-      twitter  ? `X-SOCIALPROFILE;type=twitter:${twitter}`   : "",
-      address  ? `ADR;TYPE=WORK:;;${address};;;;`             : "",
+      twitter ? `X-SOCIALPROFILE;type=twitter:${twitter}` : "",
+      instagram ? `X-SOCIALPROFILE;type=instagram:${instagram}` : "",
+      youtube ? `X-SOCIALPROFILE;type=youtube:${youtube}` : "",
       "END:VCARD",
     ].filter(Boolean).join("\r\n");
 
@@ -930,7 +984,7 @@ export default function ProfileStudioProfessional() {
     a.download = `${name.replace(/\s+/g, "_") || "contact"}.vcf`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("vCard downloaded!");
+    toast.success("vCard downloaded with all info!");
   };
 
   // Quick-add icon row presets
@@ -951,6 +1005,37 @@ export default function ProfileStudioProfessional() {
 
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-[#0e0e10] text-white" style={{ userSelect: "none" }}>
+      {/* Delete Confirmation Dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#1a1a1e] border border-red-500/20 rounded-2xl p-6 max-w-sm mx-4 space-y-4"
+          >
+            <div>
+              <p className="text-lg font-semibold text-white">Delete design?</p>
+              <p className="text-sm text-slate-400 mt-1">This will permanently delete "<span className="font-medium text-slate-300">{confirmDelete.name}</span>". This action cannot be undone.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-2.5 rounded-lg bg-white/[0.06] hover:bg-white/10 text-white text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteDesign(confirmDelete.id)}
+                disabled={deletingDesignId === confirmDelete.id}
+                className="flex-1 py-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deletingDesignId === confirmDelete.id && <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />}
+                {deletingDesignId === confirmDelete.id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* ── Left Panel — desktop sidebar + mobile drawer ───────── */}
       {/* Desktop */}
@@ -1196,8 +1281,9 @@ export default function ProfileStudioProfessional() {
                             className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isActive ? "bg-emerald-500/20 text-emerald-400" : "bg-white/[0.06] hover:bg-white/10 text-slate-500 hover:text-white"}`}>
                             <BookmarkCheck className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => deleteDesign(design.id)}
-                            className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-red-500/20 text-slate-500 hover:text-red-400 flex items-center justify-center transition-colors">
+                          <button onClick={() => setConfirmDelete({ id: design.id, name: design.name })}
+                            disabled={deletingDesignId === design.id}
+                            className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-red-500/20 text-slate-500 hover:text-red-400 flex items-center justify-center transition-colors disabled:opacity-50">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -1265,7 +1351,7 @@ export default function ProfileStudioProfessional() {
           <div className="relative shrink-0"
             style={{ width: CANVAS_W * stageScale, height: CANVAS_H * stageScale }}>
           <div className="relative shrink-0"
-            style={{ width: CANVAS_W, height: CANVAS_H, background: canvasBg, boxShadow: "0 50px 130px rgba(0,0,0,0.85), 0 20px 40px rgba(0,0,0,0.5)", transform: `scale(${stageScale})`, transformOrigin: "top left" }}
+            style={{ width: CANVAS_W, height: CANVAS_H, background: canvasBg, boxShadow: "0 50px 130px rgba(0,0,0,0.85), 0 20px 40px rgba(0,0,0,0.5)", transform: `scale(${stageScale})`, transformOrigin: "top left", touchAction: "none" }}
             ref={canvasRef}
             onPointerDown={(e) => { if (e.target === e.currentTarget && !previewMode) setSelectedId(null); }}>
               {elements.filter(el => !el.hidden).map((el) => {
@@ -2012,7 +2098,7 @@ export default function ProfileStudioProfessional() {
                           <div className="flex gap-1.5">
                             <button onClick={() => { loadDesign(design); setMobileLeftOpen(false); }} className="flex-1 py-1.5 rounded-lg bg-white/[0.06] text-[10px] font-medium text-slate-300">Load</button>
                             <button onClick={() => markDesignActive(design.id)} className={`w-7 h-7 rounded-lg flex items-center justify-center ${isActive ? "bg-emerald-500/20 text-emerald-400" : "bg-white/[0.06] text-slate-500"}`}><BookmarkCheck className="w-3.5 h-3.5" /></button>
-                            <button onClick={() => deleteDesign(design.id)} className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-red-500/20 text-slate-500 hover:text-red-400 flex items-center justify-center"><Trash2 className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => setConfirmDelete({ id: design.id, name: design.name })} disabled={deletingDesignId === design.id} className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-red-500/20 text-slate-500 hover:text-red-400 flex items-center justify-center disabled:opacity-50"><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
                         </div>
                       );
