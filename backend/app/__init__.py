@@ -231,22 +231,41 @@ def ensure_user_schema():
     """Add user columns introduced after first SQLite bootstrap."""
     from sqlalchemy import text
 
-    if not _is_sqlite_database():
-        return
-
-    existing_columns = {
-        row[1]
-        for row in db.session.execute(text("PRAGMA table_info(user)"))
-    }
+    is_sqlite = _is_sqlite_database()
+    
+    if is_sqlite:
+        existing_columns = {
+            row[1]
+            for row in db.session.execute(text("PRAGMA table_info(user)"))
+        }
+    else:
+        # PostgreSQL
+        existing_columns = {
+            row[0]
+            for row in db.session.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'user'"
+            ))
+        }
 
     column_definitions = {
-        'reset_token': 'ALTER TABLE user ADD COLUMN reset_token VARCHAR(128)',
-        'reset_token_expires': 'ALTER TABLE user ADD COLUMN reset_token_expires DATETIME',
+        'reset_token': (
+            'ALTER TABLE user ADD COLUMN reset_token VARCHAR(128)' if is_sqlite
+            else 'ALTER TABLE "user" ADD COLUMN reset_token VARCHAR(128)'
+        ),
+        'reset_token_expires': (
+            'ALTER TABLE user ADD COLUMN reset_token_expires DATETIME' if is_sqlite
+            else 'ALTER TABLE "user" ADD COLUMN reset_token_expires TIMESTAMP'
+        ),
     }
 
     for column_name, ddl in column_definitions.items():
         if column_name not in existing_columns:
-            db.session.execute(text(ddl))
+            try:
+                db.session.execute(text(ddl))
+            except Exception as e:
+                # Column might already exist or other DB-specific issues
+                print(f"[INFO] Column {column_name} migration: {e}")
 
     db.session.commit()
 
