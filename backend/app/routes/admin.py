@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from ..extensions import db
-from ..models import Company, User, Card, AuditLog, Profile, AnalyticsEvent
+from ..models import Company, User, Card, AuditLog, Profile, AnalyticsEvent, CompanyPolicy
 from ..utils.auth import get_jwt_user, require_role
 from datetime import datetime, timedelta
 import secrets
@@ -224,13 +224,22 @@ def list_all_cards():
     """List all cards or generate cards (admin only)."""
     if request.method == 'POST':
         data = request.get_json() or {}
-        company_id = data.get('company_id')
-        if not company_id:
-            return {'error': 'company_id is required'}, 400
+        scope = str(data.get('scope') or 'company').strip().lower()
+        company_id = data.get('company_id') or None
 
-        company = Company.query.get(company_id)
-        if not company:
-            return {'error': 'Company not found'}, 404
+        if scope not in ['company', 'personal']:
+            return {'error': 'Invalid scope'}, 400
+
+        if scope == 'company':
+            if not company_id:
+                return {'error': 'company_id is required for company cards'}, 400
+
+            company = Company.query.get(company_id)
+            if not company:
+                return {'error': 'Company not found'}, 404
+        else:
+            company = None
+            company_id = None
 
         try:
             count = max(1, min(int(data.get('count', 5)), 100))
@@ -247,7 +256,7 @@ def list_all_cards():
                 company_id=company_id,
                 code=code,
                 short_code=_new_card_short_code(),
-                status='unassigned',
+                status='personal' if scope == 'personal' else 'unassigned',
             )
             db.session.add(card)
             created_cards.append(card)
@@ -265,6 +274,7 @@ def list_all_cards():
     company_id = request.args.get('company_id')
     claim_status = request.args.get('claim_status')
     assignment = request.args.get('assignment')
+    scope = request.args.get('scope')
     search = (request.args.get('search') or '').strip()
     
     query = Card.query.outerjoin(User, User.id == Card.assigned_user_id)
@@ -274,6 +284,11 @@ def list_all_cards():
     
     if company_id:
         query = query.filter(Card.company_id == company_id)
+
+    if scope == 'personal':
+        query = query.filter(Card.company_id.is_(None))
+    elif scope == 'company':
+        query = query.filter(Card.company_id.isnot(None))
 
     if claim_status in ['true', 'false']:
         query = query.filter(Card.claim_status == (claim_status == 'true'))
@@ -311,6 +326,7 @@ def list_all_cards():
             'name': card.company.name,
             'slug': card.company.slug,
         } if card.company else None
+        card_data['scope'] = 'company' if card.company_id else 'personal'
         card_data['tracking'] = {
             'total_views': len(card.analytics_events),
             'last_view_at': card.analytics_events[-1].timestamp.isoformat() if card.analytics_events else None,
@@ -702,6 +718,17 @@ def invite_user():
         user_id=user.id,
         public_slug=data.get('public_slug') or f"{user.first_name.lower()}{user.last_name.lower()}{user.id[:4]}",
     )
+
+    if company_id:
+        policy = CompanyPolicy.query.filter_by(company_id=company_id).first()
+        template = policy.profile_template if policy and policy.profile_template else {}
+        editable = set(policy.editable_fields or []) if policy else set()
+        for field, value in template.items():
+            if field in editable:
+                continue
+            if hasattr(profile, field):
+                setattr(profile, field, value)
+
     db.session.add(profile)
     db.session.commit()
 
@@ -870,7 +897,7 @@ def update_card_status(card_id):
     data = request.get_json() or {}
     new_status = data.get('status')
 
-    if new_status not in ['active', 'unassigned', 'assigned', 'suspended', 'retired']:
+    if new_status not in ['active', 'unassigned', 'assigned', 'personal', 'suspended', 'retired']:
         return {'error': 'Invalid status'}, 400
 
     card = Card.query.get(card_id)
@@ -931,13 +958,21 @@ def generate_company_cards(company_id):
 def generate_cards_compat():
     """Compatibility endpoint: generate cards using company_id in JSON payload."""
     data = request.get_json() or {}
-    company_id = data.get('company_id')
-    if not company_id:
-        return {'error': 'company_id is required'}, 400
+    scope = str(data.get('scope') or 'company').strip().lower()
+    company_id = data.get('company_id') or None
 
-    company = Company.query.get(company_id)
-    if not company:
-        return {'error': 'Company not found'}, 404
+    if scope not in ['company', 'personal']:
+        return {'error': 'Invalid scope'}, 400
+
+    if scope == 'company':
+        if not company_id:
+            return {'error': 'company_id is required'}, 400
+
+        company = Company.query.get(company_id)
+        if not company:
+            return {'error': 'Company not found'}, 404
+    else:
+        company_id = None
 
     try:
         count = max(1, min(int(data.get('count', 5)), 100))
@@ -954,7 +989,7 @@ def generate_cards_compat():
             company_id=company_id,
             code=code,
             short_code=_new_card_short_code(),
-            status='unassigned',
+            status='personal' if scope == 'personal' else 'unassigned',
         )
         db.session.add(card)
         created_cards.append(card)

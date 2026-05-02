@@ -66,13 +66,23 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     const target = requestCandidates[index];
 
     try {
+      // Per-candidate timeout: same-origin requests get a longer timeout,
+      // while cross-origin dev fallbacks are short to avoid long stalls.
+      const controller = new AbortController();
+      const isSameOrigin = typeof window !== 'undefined' && (
+        target.startsWith('/') || target.startsWith(window.location.origin)
+      );
+      const timeoutMs = isSameOrigin ? 10000 : 2500;
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
       const response = await fetch(target, {
         ...init,
+        signal: controller.signal,
         headers: {
           ...defaultHeaders,
           ...(init.headers || {}),
         },
-      });
+      }).finally(() => clearTimeout(timeout));
 
       const contentType = response.headers.get("content-type") || "";
       const isJsonResponse = contentType.includes("application/json");
@@ -107,8 +117,9 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
           throw new Error("Authentication required");
         }
 
-        // If same-origin endpoint returns Not Found, try backend origin fallback.
-        if (response.status === 404 && index < requestCandidates.length - 1) {
+        // Retry only when 404 likely came from a proxy/path miss (non-JSON fallback).
+        // If backend returned structured JSON, do not fan out retries to all candidates.
+        if (response.status === 404 && !isJsonResponse && index < requestCandidates.length - 1) {
           lastError = new Error(errorMessage || "Not Found");
           continue;
         }

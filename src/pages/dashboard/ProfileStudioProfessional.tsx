@@ -1,9 +1,12 @@
-﻿import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useMemo, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/api";
+import { getCurrentCompanyId } from "@/lib/auth-context";
 import { removeBackground } from "@imgly/background-removal";
+import { useLocation } from "react-router-dom";
+import { ProfileDataForm, ProfileData } from "@/components/ProfileDataForm";
 import {
   AlignCenter, AlignLeft, AlignRight,
   ImagePlus, Link as LinkIcon, Minus, Plus, Type,
@@ -17,7 +20,7 @@ import {
   Bookmark, BookmarkCheck, CircleIcon, Sparkles,
   Search, Image as ImageIcon, Wand2, Undo2, Redo2, Upload,
 } from "lucide-react";
-import { useRef, useMemo } from "react";
+import { useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ─── Canvas ──────────────────────────────────────────────────────────────────
@@ -48,10 +51,20 @@ type CanvasElement = {
 type CanvasBackground = { type: "solid" | "gradient"; color: string; gradient: string; imageUrl: string; };
 
 // ─── Templates ───────────────────────────────────────────────────────────────
-const TEMPLATES: {
+export const TEMPLATES: {
   id: string; name: string; category: string; thumb: string; accentColor: string;
   bg: CanvasBackground; elements: Partial<CanvasElement>[];
 }[] = [
+  // ── Blank Canvas ──────────────────────────────────────────────────────────
+  {
+    id: "blank",
+    name: "Blank",
+    category: "Light",
+    accentColor: "#000000",
+    thumb: "#ffffff",
+    bg: { type: "solid", color: "#ffffff", gradient: "", imageUrl: "" },
+    elements: [],
+  },
   // ── Artemis ───────────────────────────────────────────────────────────────
   {
     id: "artemis",
@@ -356,7 +369,7 @@ const CategoryBadge = ({ label, active, onClick }: { label: string; active: bool
 );
 
 const Label = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2">{children}</p>
+  <p className="text-[9px] font-semibold text-slate-700 uppercase tracking-widest mb-2.5">{children}</p>
 );
 
 // ── Saved Design type ────────────────────────────────────────────────────────
@@ -394,7 +407,7 @@ const apiDesignToSaved = (d: ApiDesign): SavedDesign => ({
 // ── Share Contact Modal ───────────────────────────────────────────────────────
 type ShareContactForm = { name: string; phone: string; email: string; company: string; note: string; };
 
-const ShareContactModal = ({ onClose, cardOwnerName, profileSlug }: { onClose: () => void; cardOwnerName: string; profileSlug: string | null }) => {
+const ShareContactModal = memo(({ onClose, cardOwnerName, profileSlug }: { onClose: () => void; cardOwnerName: string; profileSlug: string | null }) => {
   const [form, setForm] = useState<ShareContactForm>({ name: "", phone: "", email: "", company: "", note: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -474,10 +487,133 @@ const ShareContactModal = ({ onClose, cardOwnerName, profileSlug }: { onClose: (
       </div>
     </div>
   );
-};
+});
+
+// ── Optimized Canvas Image Component ─────────────────────────────────────────
+const CanvasImage = memo(({ src, alt, radius }: { src?: string; alt: string; radius: number }) => {
+  const [loaded, setLoaded] = useState(false);
+
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-full h-full object-contain"
+      style={{ borderRadius: radius, opacity: loaded ? 1 : 0.5, transition: 'opacity 0.3s' }}
+      draggable={false}
+      onLoad={() => setLoaded(true)}
+      onError={() => setLoaded(true)}
+    />
+  );
+});
+CanvasImage.displayName = "CanvasImage";
+
+// ── Optimized Canvas Icon Row Component ──────────────────────────────────────
+const CanvasIconRow = memo(({ el, previewMode, onUpdate }: { 
+  el: CanvasElement; 
+  previewMode: boolean; 
+  onUpdate: (patch: Partial<CanvasElement>) => void 
+}) => {
+  const IconComp = el.iconName ? ICON_MAP[el.iconName] : null;
+  const iconCol = el.iconColor ?? "#64748b";
+
+  return (
+    <div className="flex items-center gap-2.5 px-3 w-full h-full" style={{ pointerEvents: "none" }}>
+      <div className="shrink-0 flex items-center justify-center rounded-lg" style={{ width: 30, height: 30, background: iconCol + "22" }}>
+        {IconComp && <IconComp style={{ width: 15, height: 15, color: iconCol }} />}
+      </div>
+      <div
+        contentEditable={!previewMode}
+        suppressContentEditableWarning
+        dir="ltr"
+        className="outline-none flex-1 truncate"
+        style={{ fontSize: el.fontSize, color: el.color, fontWeight: el.fontWeight, lineHeight: 1.3, pointerEvents: previewMode ? "none" : "auto" }}
+        onBlur={(e) => onUpdate({ text: e.currentTarget.textContent ?? "" })}>
+        {el.text}
+      </div>
+    </div>
+  );
+});
+CanvasIconRow.displayName = "CanvasIconRow";
+
+// ── Optimized Canvas Element Component ───────────────────────────────────────
+const CanvasElement = memo(({ 
+  el, 
+  isSelected, 
+  previewMode, 
+  onPointerDown, 
+  onResizeDown, 
+  onUpdate, 
+  onRemove, 
+  onPreviewClick 
+}: { 
+  el: CanvasElement;
+  isSelected: boolean;
+  previewMode: boolean;
+  onPointerDown: (e: React.PointerEvent, id: string) => void;
+  onResizeDown: (e: React.PointerEvent, id: string) => void;
+  onUpdate: (patch: Partial<CanvasElement>) => void;
+  onRemove: () => void;
+  onPreviewClick: () => void;
+}) => {
+  const isInteractive = previewMode && (el.type === "button" || el.type === "icon_row" || el.type === "link");
+
+  return (
+    <div
+      className={`absolute ${!previewMode ? "cursor-move" : isInteractive ? "cursor-pointer" : "cursor-default"}`}
+      style={{
+        left: el.x, top: el.y, width: el.w, height: el.h,
+        padding: el.padding || undefined,
+        borderRadius: el.radius || undefined,
+        background: el.background !== "transparent" ? el.background : undefined,
+        textAlign: el.align, color: el.color, fontSize: el.fontSize, fontWeight: el.fontWeight,
+        letterSpacing: el.letterSpacing ? el.letterSpacing : undefined,
+        fontStyle: el.italic ? "italic" : undefined,
+        opacity: el.opacity, zIndex: el.zIndex,
+        direction: "ltr", unicodeBidi: "embed",
+        outline: isSelected ? "2px solid rgba(255,255,255,0.7)" : "none",
+        outlineOffset: isSelected ? 2 : undefined,
+        display: el.type === "icon_row" ? "flex" : undefined,
+        alignItems: el.type === "icon_row" ? "stretch" : undefined,
+        transition: isInteractive ? "opacity 0.15s" : undefined,
+      }}
+      onPointerDown={(e) => onPointerDown(e, el.id)}
+      onClick={onPreviewClick}>
+      
+      {el.type === "image" ? (
+        <CanvasImage src={el.src} alt="" radius={el.radius} />
+      ) : el.type === "shape" || el.type === "divider" ? (
+        null
+      ) : el.type === "icon_row" ? (
+        <CanvasIconRow el={el} previewMode={previewMode} onUpdate={onUpdate} />
+      ) : (
+        <div contentEditable={!previewMode} suppressContentEditableWarning dir="ltr"
+          className="w-full h-full outline-none" style={{ lineHeight: 1.25, direction: "ltr" }}
+          onBlur={(e) => onUpdate({ text: e.currentTarget.textContent ?? "" })}>
+          {el.text}
+        </div>
+      )}
+
+      {isSelected && (
+        <>
+          <button type="button"
+            className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center z-50 shadow-lg"
+            onPointerDown={(e) => { e.stopPropagation(); onRemove(); }}>
+            <X className="w-3 h-3" />
+          </button>
+          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white border-2 border-slate-900 rounded-sm cursor-se-resize z-50"
+            onPointerDown={(e) => onResizeDown(e, el.id)} />
+        </>
+      )}
+    </div>
+  );
+});
+CanvasElement.displayName = "CanvasElement";
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 export default function ProfileStudioProfessional() {
+  const location = useLocation();
+  const isCompanyWorkspace = location.pathname.startsWith("/company");
   const [elements, setElementsRaw]      = useState<CanvasElement[]>(() => applyTemplate(TEMPLATES[0]));
   const [bg, setBg]                     = useState<CanvasBackground>(TEMPLATES[0].bg);
   const [activeTemplate, setActiveTemplate] = useState(TEMPLATES[0].id);
@@ -487,7 +623,7 @@ export default function ProfileStudioProfessional() {
   const historyIdx    = useRef<number>(0);
   const skipHistory   = useRef(false); // set true during drag moves to avoid flooding
 
-  const setElements = useCallback((value: CanvasElement[] | ((prev: CanvasElement[]) => CanvasElement[])) => {
+  const setElements = (value: CanvasElement[] | ((prev: CanvasElement[]) => CanvasElement[])) => {
     setElementsRaw((prev) => {
       const next = typeof value === "function" ? value(prev) : value;
       if (!skipHistory.current) {
@@ -498,23 +634,23 @@ export default function ProfileStudioProfessional() {
       }
       return next;
     });
-  }, []);
+  };
 
-  const undo = useCallback(() => {
+  const undo = () => {
     if (historyIdx.current <= 0) return;
     historyIdx.current -= 1;
     skipHistory.current = true;
     setElementsRaw(historyRef.current[historyIdx.current]);
     skipHistory.current = false;
-  }, []);
+  };
 
-  const redo = useCallback(() => {
+  const redo = () => {
     if (historyIdx.current >= historyRef.current.length - 1) return;
     historyIdx.current += 1;
     skipHistory.current = true;
     setElementsRaw(historyRef.current[historyIdx.current]);
     skipHistory.current = false;
-  }, []);
+  };
 
   const canUndo = historyIdx.current > 0;
   const canRedo = historyIdx.current < historyRef.current.length - 1;
@@ -532,7 +668,27 @@ export default function ProfileStudioProfessional() {
   const [resizeId, setResizeId]         = useState<string | null>(null);
   const [dragOffset, setDragOffset]     = useState({ x: 0, y: 0 });
   const [previewMode, setPreviewMode]   = useState(false);
-  const [leftTab, setLeftTab]           = useState<"templates" | "elements" | "saved" | "photos">("templates");
+  const [leftTab, setLeftTab]           = useState<"templates" | "elements" | "saved" | "photos" | "profile">("templates");
+  
+  // Profile data state
+  const [profileData, setProfileData] = useState<ProfileData>({
+    companyName: "",
+    companyWebsite: "",
+    companyPhone: "",
+    companyLocation: "",
+    companyLogo: "",
+    firstName: "",
+    lastName: "",
+    title: "",
+    position: "",
+    email: "",
+    phone: "",
+    whatsapp: "",
+    website: "",
+    location: "",
+    profilePhoto: "",
+  });
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [photoQuery, setPhotoQuery]     = useState("");
   const [photoResults, setPhotoResults] = useState<{ id: string; thumb: string; full: string; author: string }[]>([]);
   const [photoLoading, setPhotoLoading] = useState(false);
@@ -552,12 +708,36 @@ export default function ProfileStudioProfessional() {
   const [deletingDesignId, setDeletingDesignId] = useState<string | null>(null);
   const [renamingDesignId, setRenamingDesignId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [studioLoaded, setStudioLoaded] = useState(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const stageHostRef = useRef<HTMLDivElement>(null);
   const canvasRef      = useRef<HTMLDivElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const photosUploadRef = useRef<HTMLInputElement>(null);
+  const lastSavedDraftRef = useRef<string>("");
 
   const selectedElement = useMemo(() => elements.find((el) => el.id === selectedId) ?? null, [elements, selectedId]);
+  const draftSignature = useMemo(
+    () => JSON.stringify({ elements, bg, activeTemplate, profileData }),
+    [elements, bg, activeTemplate, profileData]
+  );
+
+  useEffect(() => {
+    if (!studioLoaded) return;
+    setHasUnsavedChanges(draftSignature !== lastSavedDraftRef.current);
+  }, [draftSignature, studioLoaded]);
+
+  const rememberSavedDraft = (signature: string) => {
+    lastSavedDraftRef.current = signature;
+    setHasUnsavedChanges(false);
+  };
+
+  const confirmDiscardChanges = (action: () => void) => {
+    if (!hasUnsavedChanges || window.confirm("You have unsaved changes. Discard them and continue?")) {
+      action();
+    }
+  };
 
   const updateElement = (id: string, patch: Partial<CanvasElement>) =>
     setElements((prev) => prev.map((el) => (el.id === id ? { ...el, ...patch } : el)));
@@ -679,11 +859,15 @@ export default function ProfileStudioProfessional() {
   // Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y / Ctrl+Shift+Z redo, Delete remove
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      const target = e.target as HTMLElement;
+      const tag = target.tagName;
+      // Don't intercept keyboard events in input fields, textareas, or content-editable elements
+      const isEditable = tag === "INPUT" || tag === "TEXTAREA" || target.contentEditable === "true" || target.getAttribute("contenteditable") === "true";
+      if (isEditable) return;
+      
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
       if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) { e.preventDefault(); redo(); }
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedId) removeSelected();
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedId) { e.preventDefault(); removeSelected(); }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -780,6 +964,7 @@ export default function ProfileStudioProfessional() {
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (!token) return;
+    let syncedDraft = false;
     apiRequest<{ profile: { public_slug: string } }>("/api/profile/me", {
       headers: { Authorization: `Bearer ${token}` },
     }).then((res) => setProfileSlug(res.profile.public_slug)).catch(() => {});
@@ -799,10 +984,142 @@ export default function ProfileStudioProfessional() {
           setElements(activeSaved.elements);
           setBg(activeSaved.bg);
           setActiveTemplate(activeSaved.templateId);
+          rememberSavedDraft(JSON.stringify({
+            elements: activeSaved.elements,
+            bg: activeSaved.bg,
+            activeTemplate: activeSaved.templateId,
+            profileData,
+          }));
+          syncedDraft = true;
         }
       }
-    }).catch(() => {}).finally(() => setDesignsLoading(false));
+    }).catch(() => {}).finally(() => {
+      if (!syncedDraft) {
+        rememberSavedDraft(JSON.stringify({ elements, bg, activeTemplate, profileData }));
+      }
+      setStudioLoaded(true);
+      setDesignsLoading(false);
+    });
   }, []);
+
+  // Auto-fill template with profile data
+  const autoFillTemplate = () => {
+    if (!profileData.firstName || !profileData.lastName) {
+      toast.error("Please add at least first name and last name");
+      return;
+    }
+
+    setIsAutoFilling(true);
+    try {
+      setElements((prev) => {
+        const updated = [...prev];
+        const fullName = `${profileData.firstName} ${profileData.lastName}`.toUpperCase();
+        const title = profileData.title || "";
+        const company = profileData.companyName || "";
+
+        // Find and update text elements (best-guesses for name, title, company)
+        const textElements = updated.filter((e) => e.type === "text");
+        
+        // Update largest text (usually name)
+        const largeText = textElements.sort((a, b) => (b.fontSize ?? 0) - (a.fontSize ?? 0))[0];
+        if (largeText) largeText.text = fullName;
+
+        // Update title text (medium size, after name)
+        const mediumTexts = textElements.filter((e) => (e.fontSize ?? 0) >= 10 && (e.fontSize ?? 0) <= 20);
+        if (mediumTexts.length > 1) mediumTexts[1].text = title;
+        else if (mediumTexts.length === 1) mediumTexts[0].text = title;
+
+        // Update company text
+        const smallTexts = textElements.filter((e) => (e.fontSize ?? 0) < 10);
+        if (smallTexts.length > 0) smallTexts[0].text = company;
+
+        // Update images (profile photo and company logo)
+        const imageElements = updated.filter((e) => e.type === "image");
+        if (profileData.profilePhoto && imageElements.length > 0) {
+          imageElements[0].src = profileData.profilePhoto;
+        }
+        if (profileData.companyLogo) {
+          if (imageElements.length > 1) {
+            // Use existing second image for logo
+            imageElements[1].src = profileData.companyLogo;
+          } else if (imageElements.length === 1) {
+            // Create a new image element for logo if it doesn't exist
+            const logoElement = createElement("image", 32, 32);
+            logoElement.w = 60;
+            logoElement.h = 60;
+            logoElement.radius = 8;
+            logoElement.src = profileData.companyLogo;
+            updated.push(logoElement);
+          }
+        }
+
+        // Update icon_row elements with contact info
+        const iconRows = updated.filter((e) => e.type === "icon_row");
+        iconRows.forEach((row) => {
+          switch (row.iconName) {
+            case "Phone":
+              if (profileData.phone) row.text = profileData.phone;
+              break;
+            case "Mail":
+              if (profileData.email) row.text = profileData.email;
+              break;
+            case "Globe":
+              if (profileData.website || profileData.companyWebsite) {
+                row.text = profileData.website || profileData.companyWebsite;
+              }
+              break;
+            case "MapPin":
+              if (profileData.location || profileData.companyLocation) {
+                row.text = profileData.location || profileData.companyLocation;
+              }
+              break;
+            case "MessageCircle":
+              if (profileData.whatsapp) row.text = profileData.whatsapp;
+              break;
+          }
+        });
+
+        return updated;
+      });
+
+      toast.success("✨ Template auto-filled with your profile data!");
+    } catch (error) {
+      toast.error("Failed to auto-fill template");
+      console.error(error);
+    } finally {
+      setIsAutoFilling(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isCompanyWorkspace) {
+      setCompanyId(null);
+      return;
+    }
+
+    getCurrentCompanyId()
+      .then((id) => setCompanyId(id))
+      .catch(() => {
+        setCompanyId(null);
+        toast.error("Could not resolve your company workspace.");
+      });
+  }, [isCompanyWorkspace]);
+
+  const applyDesignToCompanyCustomers = async (designId: string): Promise<number> => {
+    if (!isCompanyWorkspace) return 0;
+
+    const token = localStorage.getItem("access_token");
+    const resolvedCompanyId = companyId ?? (await getCurrentCompanyId());
+
+    const response = await apiRequest<{ applied_profiles: number }>(`/api/designs/${designId}/apply-company`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token ?? ""}` },
+      body: JSON.stringify({ company_id: resolvedCompanyId }),
+    });
+
+    setCompanyId(resolvedCompanyId);
+    return response.applied_profiles ?? 0;
+  };
 
   const saveCurrentDesign = async () => {
     const name = saveNameInput.trim() || `Design ${savedDesigns.length + 1}`;
@@ -831,7 +1148,21 @@ export default function ProfileStudioProfessional() {
       const saved = apiDesignToSaved(res.design);
       // Replace optimistic with real design
       setSavedDesigns((prev) => prev.map((d) => d.id === optimisticDesign.id ? saved : d));
-      toast.success(`"${name}" saved!`);
+
+      if (isCompanyWorkspace) {
+        await apiRequest(`/api/designs/${saved.id}/activate`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token ?? ""}` },
+        });
+        setActiveDesignId(saved.id);
+        setSavedDesigns((prev) => prev.map((d) => ({ ...d, isActive: d.id === saved.id })));
+
+        const appliedProfiles = await applyDesignToCompanyCustomers(saved.id);
+        toast.success(`"${name}" saved and applied to ${appliedProfiles} customer profiles.`);
+      } else {
+        toast.success(`"${name}" saved!`);
+      }
+      rememberSavedDraft(JSON.stringify({ elements, bg, activeTemplate, profileData }));
     } catch (error) {
       // Rollback on error
       setSavedDesigns((prev) => prev.filter((d) => !d.id.startsWith("temp-")));
@@ -843,12 +1174,20 @@ export default function ProfileStudioProfessional() {
   };
 
   const loadDesign = (design: SavedDesign) => {
-    setElements(design.elements);
-    setBg(design.bg);
-    setActiveTemplate(design.templateId);
-    setSelectedId(null);
-    setEditingDesignId(null);
-    toast.success(`"${design.name}" loaded!`);
+    confirmDiscardChanges(() => {
+      setElements(design.elements);
+      setBg(design.bg);
+      setActiveTemplate(design.templateId);
+      setSelectedId(null);
+      setEditingDesignId(null);
+      rememberSavedDraft(JSON.stringify({
+        elements: design.elements,
+        bg: design.bg,
+        activeTemplate: design.templateId,
+        profileData,
+      }));
+      toast.success(`"${design.name}" loaded!`);
+    });
   };
 
   const deleteDesign = async (id: string) => {
@@ -897,7 +1236,13 @@ export default function ProfileStudioProfessional() {
         });
         setActiveDesignId(id);
         setSavedDesigns((prev) => prev.map((d) => ({ ...d, isActive: d.id === id })));
-        toast.success("Design marked as active card layout!");
+
+        if (isCompanyWorkspace) {
+          const appliedProfiles = await applyDesignToCompanyCustomers(id);
+          toast.success(`Design is live and applied to ${appliedProfiles} customer profiles.`);
+        } else {
+          toast.success("Design marked as active card layout!");
+        }
       }
     } catch {
       toast.error("Failed to update active design.");
@@ -936,44 +1281,34 @@ export default function ProfileStudioProfessional() {
   const cardOwnerName = elements.find((el) => el.type === "text" && el.fontSize >= 20)?.text?.slice(0, 30) ?? "Card Owner";
 
   const downloadVCard = () => {
-    const texts     = elements.filter((e) => e.type === "text");
-    const iconRows  = elements.filter((e) => e.type === "icon_row");
+    // Use profileData from form, fallback to canvas elements
+    const fullName = `${profileData.firstName} ${profileData.lastName}`.trim() || "Contact";
+    const title = profileData.title || profileData.position || "";
+    const email = profileData.email || "";
+    const phone = profileData.phone || "";
+    const wa = profileData.whatsapp || "";
+    const website = profileData.website || "";
+    const location = profileData.location || "";
+    const company = profileData.companyName || "";
+    const companyPhone = profileData.companyPhone || "";
+    const companyWebsite = profileData.companyWebsite || "";
 
-    // Best-guess name: largest bold text
-    const name  = texts
-      .filter((e) => (e.fontSize ?? 0) >= 20 && (e.fontWeight ?? 400) >= 600)
-      .sort((a, b) => (b.fontSize ?? 0) - (a.fontSize ?? 0))[0]?.text ?? "";
-
-    // Best-guess title: medium text near name
-    const title = texts
-      .filter((e) => (e.fontSize ?? 0) >= 9 && (e.fontSize ?? 0) < 20)
-      .sort((a, b) => (b.fontWeight ?? 400) - (a.fontWeight ?? 400))[0]?.text ?? "";
-
-    const phone   = iconRows.find((e) => e.iconName === "Phone")?.text ?? "";
-    const wa      = iconRows.find((e) => e.iconName === "MessageCircle")?.text ?? "";
-    const email   = iconRows.find((e) => e.iconName === "Mail")?.text ?? "";
-    const website = iconRows.find((e) => e.iconName === "Globe")?.text ?? "";
-    const address = iconRows.find((e) => e.iconName === "MapPin")?.text ?? "";
-    const linkedin = iconRows.find((e) => e.iconName === "Linkedin")?.text ?? "";
-    const twitter  = iconRows.find((e) => e.iconName === "Twitter")?.text ?? "";
-    const instagram = iconRows.find((e) => e.iconName === "Instagram")?.text ?? "";
-    const youtube = iconRows.find((e) => e.iconName === "Youtube")?.text ?? "";
-
-    // Build comprehensive vCard with all fields
+    // Build comprehensive vCard with all profile data
     const lines = [
       "BEGIN:VCARD",
       "VERSION:3.0",
-      name ? `FN:${name}` : "FN:Contact",
+      fullName ? `FN:${fullName}` : "FN:Contact",
+      profileData.firstName ? `N:${profileData.lastName || ""};${profileData.firstName};;;` : "",
       title ? `TITLE:${title}` : "",
-      phone ? `TEL;TYPE=CELL:${phone}` : "",
-      wa ? `TEL;TYPE=WORK:${wa}` : "",
+      company ? `ORG:${company}` : "",
       email ? `EMAIL:${email}` : "",
+      phone ? `TEL;TYPE=CELL:${phone}` : "",
+      wa ? `TEL;TYPE=CELL:${wa}` : "",
+      companyPhone ? `TEL;TYPE=WORK:${companyPhone}` : "",
       website ? `URL:${website.startsWith("http") ? website : "https://" + website}` : "",
-      address ? `ADR;TYPE=WORK:;;${address};;;;` : "",
-      linkedin ? `X-SOCIALPROFILE;type=linkedin:${linkedin}` : "",
-      twitter ? `X-SOCIALPROFILE;type=twitter:${twitter}` : "",
-      instagram ? `X-SOCIALPROFILE;type=instagram:${instagram}` : "",
-      youtube ? `X-SOCIALPROFILE;type=youtube:${youtube}` : "",
+      companyWebsite ? `URL:${companyWebsite.startsWith("http") ? companyWebsite : "https://" + companyWebsite}` : "",
+      location ? `ADR;TYPE=HOME:;;${location};;;;` : "",
+      profileData.companyLocation ? `ADR;TYPE=WORK:;;${profileData.companyLocation};;;;` : "",
       "END:VCARD",
     ].filter(Boolean).join("\r\n");
 
@@ -981,10 +1316,10 @@ export default function ProfileStudioProfessional() {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
     a.href     = url;
-    a.download = `${name.replace(/\s+/g, "_") || "contact"}.vcf`;
+    a.download = `${fullName.replace(/\s+/g, "_") || "contact"}.vcf`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("vCard downloaded with all info!");
+    toast.success("Contact saved with all profile information!");
   };
 
   // Quick-add icon row presets
@@ -1004,32 +1339,32 @@ export default function ProfileStudioProfessional() {
   ];
 
   return (
-    <div className="flex h-full min-h-0 w-full overflow-hidden bg-[#0e0e10] text-white" style={{ userSelect: "none" }}>
+    <div className="flex h-full min-h-0 w-full overflow-hidden bg-gradient-to-br from-[#f8f9fc] to-[#f0f4f8] text-slate-900" style={{ userSelect: "none" }}>
       {/* Delete Confirmation Dialog */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#1a1a1e] border border-red-500/20 rounded-2xl p-6 max-w-sm mx-4 space-y-4"
+            className="bg-white border border-red-200/40 rounded-2xl p-6 max-w-sm mx-4 space-y-4 shadow-xl"
           >
             <div>
-              <p className="text-lg font-semibold text-white">Delete design?</p>
-              <p className="text-sm text-slate-400 mt-1">This will permanently delete "<span className="font-medium text-slate-300">{confirmDelete.name}</span>". This action cannot be undone.</p>
+              <p className="text-lg font-semibold text-slate-900">Delete design?</p>
+              <p className="text-sm text-slate-600 mt-1">This will permanently delete "<span className="font-medium text-slate-800">{confirmDelete.name}</span>". This action cannot be undone.</p>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDelete(null)}
-                className="flex-1 py-2.5 rounded-lg bg-white/[0.06] hover:bg-white/10 text-white text-sm font-medium transition-colors"
+                className="flex-1 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => deleteDesign(confirmDelete.id)}
                 disabled={deletingDesignId === confirmDelete.id}
-                className="flex-1 py-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {deletingDesignId === confirmDelete.id && <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />}
+                {deletingDesignId === confirmDelete.id && <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />}
                 {deletingDesignId === confirmDelete.id ? "Deleting..." : "Delete"}
               </button>
             </div>
@@ -1039,17 +1374,27 @@ export default function ProfileStudioProfessional() {
 
       {/* ── Left Panel — desktop sidebar + mobile drawer ───────── */}
       {/* Desktop */}
-      <aside className="hidden md:flex h-full min-h-0 flex-col w-[220px] shrink-0 border-r border-white/[0.06] bg-[#141416] overflow-hidden">
-        <div className="flex border-b border-white/[0.06]">
-          {["templates", "elements", "photos", "saved"].map((tab) => (
-            <button key={tab} onClick={() => setLeftTab(tab as "templates" | "elements" | "photos" | "saved")}
+      <aside className="hidden md:flex h-full min-h-0 flex-col w-[240px] shrink-0 border-r border-slate-200 bg-white overflow-hidden shadow-sm">
+        <div className="flex border-b border-slate-200">
+          {["templates", "elements", "photos", "profile", "saved"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => {
+                const nextTab = tab as "templates" | "elements" | "photos" | "profile" | "saved";
+                if (nextTab === "saved") {
+                  confirmDiscardChanges(() => setLeftTab(nextTab));
+                  return;
+                }
+                setLeftTab(nextTab);
+              }}
               className={`flex-1 py-2.5 transition-colors relative ${leftTab === tab ? "text-white border-b-2 border-white bg-white/[0.03]" : "text-slate-500 hover:text-slate-300"}`}>
               {tab === "templates" ? <LayoutTemplate className="w-5 h-5 mx-auto" />
                 : tab === "elements" ? <Plus className="w-5 h-5 mx-auto" />
                 : tab === "photos" ? <ImageIcon className="w-5 h-5 mx-auto" />
+                : tab === "profile" ? <Briefcase className="w-5 h-5 mx-auto" />
                 : <Bookmark className="w-5 h-5 mx-auto" />}
               {tab === "saved" && savedDesigns.length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-emerald-500 text-[7px] font-bold text-white flex items-center justify-center">
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-indigo-600 text-[8px] font-bold text-white flex items-center justify-center">
                   {savedDesigns.length}
                 </span>
               )}
@@ -1062,7 +1407,7 @@ export default function ProfileStudioProfessional() {
           {/* TEMPLATES */}
           {leftTab === "templates" && (
             <>
-              <div className="flex gap-1 p-1 bg-white/[0.04] rounded-lg mb-2">
+              <div className="flex gap-1.5 p-1.5 bg-slate-100 rounded-lg mb-3">
                 {["All", "Dark", "Light"].map((cat) => (
                   <CategoryBadge key={cat} label={cat} active={categoryFilter === cat} onClick={() => setCategoryFilter(cat)} />
                 ))}
@@ -1071,17 +1416,17 @@ export default function ProfileStudioProfessional() {
                 {filteredTemplates.map((tpl) => (
                   <button key={tpl.id}
                     onClick={() => { setElements(applyTemplate(tpl)); setBg(tpl.bg); setActiveTemplate(tpl.id); setSelectedId(null); }}
-                    className={`w-full rounded-lg overflow-hidden border transition-all flex items-center px-2 py-2 gap-2 ${activeTemplate === tpl.id ? "border-white/60 bg-white/[0.06]" : "border-white/[0.08] hover:border-white/30 bg-white/[0.02] hover:bg-white/[0.04]"}`}>
-                    <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-xs font-bold text-white/80 uppercase">
+                    className={`w-full rounded-lg overflow-hidden border transition-all flex items-center px-2 py-2 gap-2 ${activeTemplate === tpl.id ? "border-indigo-300 bg-indigo-50" : "border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100"}`}>
+                    <div className="w-8 h-8 rounded bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 uppercase">
                       {tpl.name[0]}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[10px] font-bold text-white/90 truncate">{tpl.name}</div>
-                      <div className="text-[8px] text-white/40 truncate">{tpl.category}</div>
+                      <div className="text-[10px] font-bold text-slate-900 truncate">{tpl.name}</div>
+                      <div className="text-[8px] text-slate-500 truncate">{tpl.category}</div>
                     </div>
                     {activeTemplate === tpl.id && (
-                      <div className="w-4 h-4 bg-white rounded-full flex items-center justify-center">
-                        <Check className="w-2.5 h-2.5 text-slate-900" />
+                      <div className="w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-white" />
                       </div>
                     )}
                   </button>
@@ -1094,8 +1439,8 @@ export default function ProfileStudioProfessional() {
           {leftTab === "elements" && (
             <div className="space-y-4">
               <div>
-                <p className="text-[9px] text-slate-600 uppercase tracking-widest font-semibold mb-2">Blocks</p>
-                <div className="grid grid-cols-3 gap-1">
+                <p className="text-[9px] text-slate-700 uppercase tracking-widest font-semibold mb-2.5">Blocks</p>
+                <div className="grid grid-cols-3 gap-1.5">
                   {([
                     { type: "text" as ElementType,    icon: <Type className="w-4 h-4" />,     label: "Text" },
                     { type: "button" as ElementType,  icon: <CreditCard className="w-4 h-4" />, label: "Button" },
@@ -1105,9 +1450,9 @@ export default function ProfileStudioProfessional() {
                     { type: "shape" as ElementType,   icon: <Maximize2 className="w-4 h-4" />, label: "Shape" },
                   ]).map(({ type, icon, label }) => (
                     <button key={type} onClick={() => addElement(type)}
-                      className="flex flex-col items-center gap-1 p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors">
-                      <span className="text-slate-400">{icon}</span>
-                      <span className="text-[9px] text-slate-500">{label}</span>
+                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
+                      <span className="text-indigo-600">{icon}</span>
+                      <span className="text-[8px] text-slate-600 font-medium">{label}</span>
                     </button>
                   ))}
                 </div>
@@ -1115,7 +1460,7 @@ export default function ProfileStudioProfessional() {
 
               {/* Shape Presets */}
               <div>
-                <p className="text-[9px] text-slate-600 uppercase tracking-widest font-semibold mb-2">Shape Presets</p>
+                <p className="text-[9px] text-slate-700 uppercase tracking-widest font-semibold mb-2.5">Shape Presets</p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {[
                     { label: "Circle",    w: 100, h: 100, radius: 999, bg: "rgba(99,102,241,0.18)" },
@@ -1132,19 +1477,19 @@ export default function ProfileStudioProfessional() {
                         setElements((prev) => [...prev, el]);
                         setSelectedId(el.id);
                       }}
-                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors">
+                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
                       <div className="w-8 h-5 flex items-center justify-center">
-                        <div style={{ width: Math.min(28, w / 6), height: Math.min(20, h / 6), borderRadius: Math.min(radius, 8), background: shapeBg.replace(/[\d.]+\)$/, "0.8)") }} />
+                        <div style={{ width: Math.min(28, w / 6), height: Math.min(20, h / 6), borderRadius: Math.min(radius, 8), background: shapeBg.replace(/[\d.]+\)$/, "1)") }} />
                       </div>
-                      <span className="text-[9px] font-medium text-slate-400">{label}</span>
+                      <span className="text-[8px] font-medium text-slate-600">{label}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <p className="text-[9px] text-slate-600 uppercase tracking-widest font-semibold mb-2">Quick Contact Icons</p>
-                <div className="grid grid-cols-3 gap-1">
+                <p className="text-[9px] text-slate-700 uppercase tracking-widest font-semibold mb-2.5">Quick Contact Icons</p>
+                <div className="grid grid-cols-3 gap-1.5">
                   {ICON_PRESETS.map(({ Icon, color, text, iconName }) => (
                     <button key={iconName}
                       onClick={() => {
@@ -1157,12 +1502,12 @@ export default function ProfileStudioProfessional() {
                         el.radius = 10;
                         el.fontSize = 13;
                         el.fontWeight = 500;
-                        el.color = "#e2e8f0";
+                        el.color = "#1f2937";
                         setElements((prev) => [...prev, el]);
                         setSelectedId(el.id);
                       }}
-                      className="flex items-center justify-center p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.04] transition-colors">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: color + "22" }}>
+                      className="flex items-center justify-center p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: color + "18" }}>
                         <Icon className="w-3.5 h-3.5" style={{ color }} />
                       </div>
                     </button>
@@ -1186,10 +1531,10 @@ export default function ProfileStudioProfessional() {
                 <input value={photoQuery} onChange={(e) => setPhotoQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && searchPhotos()}
                   placeholder="Search photos…"
-                  className="flex-1 h-8 text-xs bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 text-white placeholder:text-slate-600 outline-none focus:border-white/20" />
+                  className="flex-1 h-9 text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 text-slate-900 placeholder:text-slate-500 outline-none focus:border-slate-400 focus:bg-white" />
                 <button onClick={searchPhotos} disabled={photoLoading}
-                  className="w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors disabled:opacity-40">
-                  {photoLoading ? <div className="w-3 h-3 border-2 border-slate-500 border-t-slate-200 rounded-full animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                  className="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-40">
+                  {photoLoading ? <div className="w-3 h-3 border-2 border-slate-400 border-t-slate-600 rounded-full animate-spin" /> : <Search className="w-4 h-4" />}
                 </button>
               </div>
               {(photoResults.length > 0 ? photoResults : DEMO_PHOTOS).map((p) => (
@@ -1216,24 +1561,24 @@ export default function ProfileStudioProfessional() {
             <div className="space-y-3">
               {/* Save current design */}
               <div className="space-y-2">
-                <p className="text-[9px] text-slate-600 uppercase tracking-widest font-semibold">Save Current Design</p>
+                <p className="text-[9px] text-slate-700 uppercase tracking-widest font-semibold">Save Current Design</p>
                 <input
                   value={saveNameInput}
                   onChange={(e) => setSaveNameInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && saveCurrentDesign()}
                   placeholder={`Design ${savedDesigns.length + 1}`}
-                  className="w-full h-8 text-xs bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 text-white placeholder:text-slate-600 outline-none focus:border-white/20"
+                  className="w-full h-9 text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 text-slate-900 placeholder:text-slate-500 outline-none focus:border-slate-400 focus:bg-white"
                 />
                 <button
                   onClick={saveCurrentDesign}
-                  className="w-full py-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5">
+                  className="w-full py-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5">
                   <Bookmark className="w-3.5 h-3.5" /> Save to Cloud
                 </button>
               </div>
 
               {designsLoading ? (
                 <div className="text-center py-8 text-slate-600 space-y-2">
-                  <div className="w-5 h-5 border-2 border-slate-600 border-t-slate-400 rounded-full animate-spin mx-auto" />
+                  <div className="w-5 h-5 border-2 border-slate-400 border-t-slate-600 rounded-full animate-spin mx-auto" />
                   <p className="text-[10px]">Loading designs…</p>
                 </div>
               ) : savedDesigns.length === 0 ? (
@@ -1244,46 +1589,46 @@ export default function ProfileStudioProfessional() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-[9px] text-slate-600 uppercase tracking-widest font-semibold">{savedDesigns.length} Cloud Designs</p>
+                  <p className="text-[9px] text-slate-700 uppercase tracking-widest font-semibold">{savedDesigns.length} Cloud Designs</p>
                   {savedDesigns.map((design) => {
                     const isActive = design.id === activeDesignId;
                     const isEditing = editingDesignId === design.id;
                     return (
-                      <div key={design.id} className={`rounded-xl border p-3 space-y-2.5 ${isActive ? "border-emerald-500/40 bg-emerald-500/5" : "border-white/[0.06] bg-white/[0.03]"}`}>
+                      <div key={design.id} className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isActive ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:bg-slate-100"}`}>
                         <div className="flex items-start justify-between gap-1.5">
                           <div className="min-w-0 flex-1">
                             {isEditing ? (
                               <input
                                 autoFocus
                                 defaultValue={design.name}
-                                className="w-full h-6 text-xs bg-white/[0.08] border border-white/20 rounded px-2 text-white outline-none"
+                                className="w-full h-6 text-xs bg-white border border-slate-300 rounded px-2 text-slate-900 outline-none focus:border-indigo-400"
                                 onBlur={(e) => { if (e.target.value.trim()) renameDesign(design.id, e.target.value.trim()); else setEditingDesignId(null); }}
                                 onKeyDown={(e) => { if (e.key === "Enter" && e.currentTarget.value.trim()) renameDesign(design.id, e.currentTarget.value.trim()); if (e.key === "Escape") setEditingDesignId(null); }}
                               />
                             ) : (
-                              <p className="text-xs font-semibold text-white truncate cursor-pointer hover:text-slate-200" onClick={() => setEditingDesignId(design.id)} title="Click to rename">{design.name}</p>
+                              <p className="text-xs font-semibold text-slate-900 truncate cursor-pointer hover:text-slate-700" onClick={() => setEditingDesignId(design.id)} title="Click to rename">{design.name}</p>
                             )}
                             <p className="text-[9px] text-slate-600 mt-0.5">{new Date(design.timestamp).toLocaleDateString()}</p>
                           </div>
                           {isActive && (
-                            <span className="shrink-0 flex items-center gap-0.5 text-[8px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">
+                            <span className="shrink-0 flex items-center gap-0.5 text-[8px] font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full border border-indigo-200">
                               <BookmarkCheck className="w-2.5 h-2.5" /> Active
                             </span>
                           )}
                         </div>
                         <div className="flex gap-1.5">
                           <button onClick={() => loadDesign(design)}
-                            className="flex-1 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/10 text-[10px] font-medium text-slate-300 hover:text-white transition-colors">
+                            className="flex-1 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-medium text-slate-700 hover:text-slate-900 transition-colors">
                             Load
                           </button>
                           <button onClick={() => markDesignActive(design.id)}
                             title={isActive ? "Unmark as active" : "Set as active card layout"}
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isActive ? "bg-emerald-500/20 text-emerald-400" : "bg-white/[0.06] hover:bg-white/10 text-slate-500 hover:text-white"}`}>
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isActive ? "bg-indigo-200 text-indigo-600" : "bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900"}`}>
                             <BookmarkCheck className="w-3.5 h-3.5" />
                           </button>
                           <button onClick={() => setConfirmDelete({ id: design.id, name: design.name })}
                             disabled={deletingDesignId === design.id}
-                            className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-red-500/20 text-slate-500 hover:text-red-400 flex items-center justify-center transition-colors disabled:opacity-50">
+                            className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-600 flex items-center justify-center transition-colors disabled:opacity-50">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -1294,18 +1639,27 @@ export default function ProfileStudioProfessional() {
               )}
             </div>
           )}
+
+          {leftTab === "profile" && (
+            <ProfileDataForm
+              data={profileData}
+              onUpdate={setProfileData}
+              onAutoFill={autoFillTemplate}
+              isLoading={isAutoFilling}
+            />
+          )}
         </div>
       </aside>
 
       {/* ── Canvas Area ──────────────────────────────────────── */}
       <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {/* Header — horizontally scrollable on mobile */}
-        <header className="flex items-center border-b border-white/[0.06] bg-[#141416] shrink-0 min-h-[48px] overflow-x-auto scrollbar-none">
-          <div className="flex items-center gap-2 px-4 py-2.5 min-w-max w-full">
+        <header className="flex items-center border-b border-slate-200 bg-white shrink-0 min-h-[56px] overflow-x-auto scrollbar-none shadow-sm">
+          <div className="flex items-center gap-3 px-5 py-3 min-w-max w-full">
             {/* Brand */}
-            <span className="text-sm font-bold text-white whitespace-nowrap mr-1">Profile Studio</span>
-            <span className="text-white/20 text-base">/</span>
-            <span className="text-sm text-slate-400 whitespace-nowrap">NFC Card</span>
+            <span className="text-base font-bold text-slate-900 whitespace-nowrap">Profile Studio</span>
+            <span className="text-slate-300 text-sm">/</span>
+            <span className="text-sm text-slate-600 whitespace-nowrap">NFC Card</span>
 
             {/* Spacer */}
             <div className="flex-1 min-w-4" />
@@ -1315,32 +1669,32 @@ export default function ProfileStudioProfessional() {
               onClick={undo}
               disabled={!canUndo}
               title="Undo (Ctrl+Z)"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0">
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0">
               <Undo2 className="w-4 h-4" />
             </button>
             <button
               onClick={redo}
               disabled={!canRedo}
               title="Redo (Ctrl+Y)"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0">
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0">
               <Redo2 className="w-4 h-4" />
             </button>
 
-            <div className="w-px h-5 bg-white/10 mx-1 shrink-0" />
+            <div className="w-px h-5 bg-slate-200 mx-2 shrink-0" />
 
             {/* Preview */}
             <button
               onClick={() => setPreviewMode((p) => !p)}
-              className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium transition-colors shrink-0 ${previewMode ? "bg-white/10 text-white" : "text-slate-400 hover:text-white hover:bg-white/[0.06]"}`}>
-              <Eye className="w-3.5 h-3.5" />
-              {previewMode ? "Editing" : "Preview"}
+              className={`flex items-center gap-2 px-3 h-9 rounded-lg text-sm font-medium transition-colors shrink-0 ${previewMode ? "bg-indigo-50 text-indigo-600" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}>
+              <Eye className="w-4 h-4" />
+              <span>{previewMode ? "Editing" : "Preview"}</span>
             </button>
 
             {/* Save */}
             <button
-              onClick={() => { setLeftTab("saved"); saveCurrentDesign(); }}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-semibold bg-white text-slate-900 hover:bg-slate-100 transition-colors shrink-0">
-              <Bookmark className="w-3.5 h-3.5" /> Save
+              onClick={() => { setLeftTab("saved"); }}
+              className="flex items-center gap-2 px-4 h-9 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shrink-0 shadow-md hover:shadow-lg">
+              <Bookmark className="w-4 h-4" /> Save
             </button>
           </div>
         </header>
@@ -1356,7 +1710,6 @@ export default function ProfileStudioProfessional() {
             onPointerDown={(e) => { if (e.target === e.currentTarget && !previewMode) setSelectedId(null); }}>
               {elements.filter(el => !el.hidden).map((el) => {
                 const isSelected = el.id === selectedId && !previewMode;
-                const isInteractive = previewMode && (el.type === "button" || el.type === "icon_row" || el.type === "link");
 
                 const handlePreviewClick = () => {
                   if (!previewMode) return;
@@ -1393,69 +1746,17 @@ export default function ProfileStudioProfessional() {
                 };
 
                 return (
-                  <div key={el.id}
-                    className={`absolute ${!previewMode ? "cursor-move" : isInteractive ? "cursor-pointer" : "cursor-default"}`}
-                    style={{
-                      left: el.x, top: el.y, width: el.w, height: el.h,
-                      padding: el.padding || undefined,
-                      borderRadius: el.radius || undefined,
-                      background: el.background !== "transparent" ? el.background : undefined,
-                      textAlign: el.align, color: el.color, fontSize: el.fontSize, fontWeight: el.fontWeight,
-                      letterSpacing: el.letterSpacing ? el.letterSpacing : undefined,
-                      fontStyle: el.italic ? "italic" : undefined,
-                      opacity: el.opacity, zIndex: el.zIndex,
-                      direction: "ltr", unicodeBidi: "embed",
-                      outline: isSelected ? "2px solid rgba(255,255,255,0.7)" : "none",
-                      outlineOffset: isSelected ? 2 : undefined,
-                      display: el.type === "icon_row" ? "flex" : undefined,
-                      alignItems: el.type === "icon_row" ? "stretch" : undefined,
-                      transition: isInteractive ? "opacity 0.15s" : undefined,
-                    }}
-                    onPointerDown={(e) => handlePointerDown(e, el.id)}
-                    onClick={handlePreviewClick}>
-                    {el.type === "image" ? (
-                      <img src={el.src} alt="" className="w-full h-full object-cover" style={{ borderRadius: el.radius }} draggable={false} />
-                    ) : el.type === "shape" || el.type === "divider" ? null
-                    : el.type === "icon_row" ? (() => {
-                      const IconComp = el.iconName ? ICON_MAP[el.iconName] : null;
-                      const iconCol = el.iconColor ?? "#64748b";
-                      return (
-                        <div className="flex items-center gap-2.5 px-3 w-full h-full" style={{ pointerEvents: "none" }}>
-                          <div className="shrink-0 flex items-center justify-center rounded-lg"
-                            style={{ width: 30, height: 30, background: iconCol + "22" }}>
-                            {IconComp && <IconComp style={{ width: 15, height: 15, color: iconCol }} />}
-                          </div>
-                          <div
-                        contentEditable={!previewMode}
-                            suppressContentEditableWarning
-                            dir="ltr"
-                            className="outline-none flex-1 truncate"
-                            style={{ fontSize: el.fontSize, color: el.color, fontWeight: el.fontWeight, lineHeight: 1.3, pointerEvents: previewMode ? "none" : "auto", direction: "ltr", unicodeBidi: "embed" }}
-                            onBlur={(e) => updateElement(el.id, { text: e.currentTarget.textContent ?? "" })}>
-                            {el.text}
-                          </div>
-                        </div>
-                      );
-                    })()
-                    : (
-                      <div contentEditable={!previewMode} suppressContentEditableWarning dir="ltr"
-                        className="w-full h-full outline-none" style={{ lineHeight: 1.25, direction: "ltr", unicodeBidi: "embed" }}
-                        onBlur={(e) => updateElement(el.id, { text: e.currentTarget.textContent ?? "" })}>
-                        {el.text}
-                      </div>
-                    )}
-                    {isSelected && (
-                      <>
-                        <button type="button"
-                          className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center z-50 shadow-lg"
-                          onPointerDown={(e) => { e.stopPropagation(); removeSelected(); }}>
-                          <X className="w-3 h-3" />
-                        </button>
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white border-2 border-slate-900 rounded-sm cursor-se-resize z-50"
-                          onPointerDown={(e) => handleResizeDown(e, el.id)} />
-                      </>
-                    )}
-                  </div>
+                  <CanvasElement
+                    key={el.id}
+                    el={el}
+                    isSelected={isSelected}
+                    previewMode={previewMode}
+                    onPointerDown={handlePointerDown}
+                    onResizeDown={handleResizeDown}
+                    onUpdate={(patch) => updateElement(el.id, patch)}
+                    onRemove={() => { setSelectedId(el.id); removeSelected(); }}
+                    onPreviewClick={handlePreviewClick}
+                  />
                 );
               })}
             </div>
@@ -1463,45 +1764,45 @@ export default function ProfileStudioProfessional() {
         </div>
 
         {/* Mobile bottom toolbar */}
-        <div className="md:hidden shrink-0 flex items-center gap-1 px-3 py-2 bg-[#141416] border-t border-white/[0.06]">
+        <div className="md:hidden shrink-0 flex items-center gap-1 px-3 py-2 bg-white border-t border-slate-200 shadow-lg">
           <button onClick={() => { setMobileLeftOpen(true); setMobileRightOpen(false); }}
-            className="flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-colors">
-            <LayoutTemplate className="w-4 h-4 text-slate-400" />
-            <span className="text-[9px] text-slate-500">Design</span>
+            className="flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+            <LayoutTemplate className="w-4 h-4 text-slate-600" />
+            <span className="text-[8px] text-slate-600 font-medium">Design</span>
           </button>
           <button onClick={() => { setMobileLeftOpen(true); setLeftTab("elements"); setMobileRightOpen(false); }}
-            className="flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-colors">
-            <Plus className="w-4 h-4 text-slate-400" />
-            <span className="text-[9px] text-slate-500">Add</span>
+            className="flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+            <Plus className="w-4 h-4 text-slate-600" />
+            <span className="text-[8px] text-slate-600 font-medium">Add</span>
           </button>
           <button onClick={() => { setMobileRightOpen(true); setMobileLeftOpen(false); }}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl transition-colors ${selectedElement ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-white/[0.04]"}`}>
-            <Pencil className={`w-4 h-4 ${selectedElement ? "text-emerald-400" : "text-slate-500"}`} />
-            <span className={`text-[9px] ${selectedElement ? "text-emerald-400" : "text-slate-500"}`}>Edit</span>
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl transition-colors ${selectedElement ? "bg-indigo-50 border border-indigo-200" : "bg-slate-50"}`}>
+            <Pencil className={`w-4 h-4 ${selectedElement ? "text-indigo-600" : "text-slate-600"}`} />
+            <span className={`text-[8px] font-medium ${selectedElement ? "text-indigo-600" : "text-slate-600"}`}>Edit</span>
           </button>
           <button onClick={() => setPreviewMode((p) => !p)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl transition-colors ${previewMode ? "bg-white/10" : "bg-white/[0.04] hover:bg-white/[0.08]"}`}>
-            <Eye className="w-4 h-4 text-slate-400" />
-            <span className="text-[9px] text-slate-500">{previewMode ? "Edit" : "View"}</span>
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl transition-colors ${previewMode ? "bg-indigo-50" : "bg-slate-50 hover:bg-slate-100"}`}>
+            <Eye className={`w-4 h-4 ${previewMode ? "text-indigo-600" : "text-slate-600"}`} />
+            <span className={`text-[8px] font-medium ${previewMode ? "text-indigo-600" : "text-slate-600"}`}>{previewMode ? "Edit" : "View"}</span>
           </button>
-          <button onClick={() => { saveCurrentDesign(); setMobileLeftOpen(true); setLeftTab("saved"); setMobileRightOpen(false); }}
-            className="flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/10 transition-colors">
+          <button onClick={() => { confirmDiscardChanges(() => { setMobileLeftOpen(true); setLeftTab("saved"); setMobileRightOpen(false); }); }}
+            className="flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 transition-colors">
             <Save className="w-4 h-4 text-white" />
-            <span className="text-[9px] text-white">Saved</span>
+            <span className="text-[8px] text-white font-medium">Saved</span>
           </button>
         </div>
       </main>
 
       {/* ── Right Inspector — desktop only ──────────────────────── */}
-      <aside className="hidden md:flex h-full min-h-0 w-[264px] shrink-0 border-l border-white/[0.06] bg-[#141416] flex-col overflow-hidden">
-        <div className="px-4 py-3.5 border-b border-white/[0.06] flex items-center justify-between">
+      <aside className="hidden md:flex h-full min-h-0 w-[280px] shrink-0 border-l border-slate-200 bg-white flex-col overflow-hidden shadow-sm">
+        <div className="px-4 py-3.5 border-b border-slate-200 flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-white">Inspector</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">{selectedElement ? `${selectedElement.type}` : "Select element"}</p>
+            <p className="text-sm font-semibold text-slate-900">Inspector</p>
+            <p className="text-[11px] text-slate-600 mt-0.5">{selectedElement ? `${selectedElement.type}` : "Select element"}</p>
           </div>
           {selectedElement && (
-            <button onClick={duplicateSelected} title="Duplicate" className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-              <Copy className="w-3.5 h-3.5" />
+            <button onClick={duplicateSelected} title="Duplicate" className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors">
+              <Copy className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -1542,15 +1843,15 @@ export default function ProfileStudioProfessional() {
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] text-slate-500 w-12 shrink-0">Weight</span>
                       <select value={selectedElement.fontWeight} onChange={(e) => updateElement(selectedElement.id, { fontWeight: Number(e.target.value) as any })}
-                        className="flex-1 h-7 text-xs rounded bg-white/[0.06] border border-white/[0.08] text-white px-2">
-                        {[400,500,600,700,800,900].map((w) => <option key={w} value={w} className="bg-[#1a1a1e]">{w}</option>)}
+                        className="w-full h-8 text-xs rounded bg-slate-50 border border-slate-200 text-slate-900 px-2 outline-none focus:border-indigo-400 focus:bg-white">
+                        {[400,500,600,700,800,900].map((w) => <option key={w} value={w} className="bg-white">{w}</option>)}
                       </select>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-slate-500 w-12 shrink-0">Spacing</span>
+                      <span className="text-[9px] text-slate-700 w-12 shrink-0">Spacing</span>
                       <input type="range" min={0} max={12} step={0.5} value={selectedElement.letterSpacing}
-                        onChange={(e) => updateElement(selectedElement.id, { letterSpacing: Number(e.target.value) })} className="flex-1 accent-white" />
-                      <span className="text-[9px] text-slate-500 w-4">{selectedElement.letterSpacing}</span>
+                        onChange={(e) => updateElement(selectedElement.id, { letterSpacing: Number(e.target.value) })} className="flex-1 accent-indigo-600" />
+                      <span className="text-[9px] text-slate-600 w-4">{selectedElement.letterSpacing}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] text-slate-500 w-12 shrink-0">Align</span>
@@ -1690,15 +1991,6 @@ export default function ProfileStudioProfessional() {
                 </section>
               )}
 
-              {/* Canvas BG */}
-              <section>
-                <Label>Canvas Background</Label>
-                <div className="flex items-center gap-3">
-                  <input type="color" value={bg.color} onChange={(e) => setBg({ ...bg, color: e.target.value, type: "solid" })} className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent" />
-                  <span className="text-xs text-slate-400 font-mono">{bg.color}</span>
-                </div>
-              </section>
-
               {/* Delete */}
               <button onClick={removeSelected}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium text-red-400 hover:bg-red-500/10 border border-red-500/20 transition-colors">
@@ -1707,6 +1999,47 @@ export default function ProfileStudioProfessional() {
             </>
           ) : (
             <div className="flex flex-col gap-5 py-4">
+              {/* Canvas Background Controls */}
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4 space-y-3">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Canvas Background</p>
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="color" 
+                      value={bg.color} 
+                      onChange={(e) => setBg({ ...bg, color: e.target.value, type: "solid" })} 
+                      className="w-10 h-10 rounded cursor-pointer border border-white/10"
+                    />
+                    <div className="flex-1">
+                      <p className="text-[9px] text-slate-500 mb-1">Background Color</p>
+                      <input
+                        type="text"
+                        value={bg.color}
+                        onChange={(e) => setBg({ ...bg, color: e.target.value, type: "solid" })}
+                        className="w-full h-7 text-xs bg-white/[0.04] border border-white/[0.08] rounded px-2 text-slate-300 font-mono"
+                        placeholder="#ffffff"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Background presets */}
+                  <div>
+                    <p className="text-[9px] text-slate-500 mb-2">Quick presets:</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {["#ffffff", "#000000", "#1a1c2f", "#f3f4f6"].map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setBg({ ...bg, color, type: "solid" })}
+                          className={`h-8 rounded border-2 transition-all ${bg.color === color ? "border-white" : "border-white/20 hover:border-white/40"}`}
+                          style={{ backgroundColor: color }}
+                          title={color}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Empty state hint */}
               <div className="flex flex-col items-center text-center space-y-2 pt-4 pb-2">
                 <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
@@ -1740,7 +2073,12 @@ export default function ProfileStudioProfessional() {
                         await apiRequest(`/api/designs/${current.id}/activate`, { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` } });
                         setActiveDesignId(current.id);
                         setSavedDesigns((prev) => prev.map((d) => ({ ...d, isActive: d.id === current.id })));
-                        toast.success(`"${current.name}" saved & live!`);
+                        if (isCompanyWorkspace) {
+                          const appliedProfiles = await applyDesignToCompanyCustomers(current.id);
+                          toast.success(`"${current.name}" saved and applied to ${appliedProfiles} customer profiles.`);
+                        } else {
+                          toast.success(`"${current.name}" saved & live!`);
+                        }
                       } catch { toast.error("Failed to save."); }
                     } else {
                       const name = saveNameInput.trim() || `Design ${savedDesigns.length + 1}`;
@@ -1756,7 +2094,12 @@ export default function ProfileStudioProfessional() {
                         await apiRequest(`/api/designs/${saved.id}/activate`, { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` } });
                         setActiveDesignId(saved.id);
                         setSavedDesigns((prev) => prev.map((d) => ({ ...d, isActive: d.id === saved.id })));
-                        toast.success(`"${name}" saved & live!`);
+                        if (isCompanyWorkspace) {
+                          const appliedProfiles = await applyDesignToCompanyCustomers(saved.id);
+                          toast.success(`"${name}" saved and applied to ${appliedProfiles} customer profiles.`);
+                        } else {
+                          toast.success(`"${name}" saved & live!`);
+                        }
                       } catch { toast.error("Failed to save design."); }
                     }
                   }}
@@ -1939,12 +2282,22 @@ export default function ProfileStudioProfessional() {
                 <button onClick={() => setMobileLeftOpen(false)} className="w-7 h-7 rounded-lg bg-white/[0.06] flex items-center justify-center text-slate-400"><X className="w-4 h-4" /></button>
               </div>
               <div className="flex border-b border-white/[0.06] shrink-0">
-                {["templates", "elements", "photos", "saved"].map((tab) => (
-                  <button key={tab} onClick={() => setLeftTab(tab as "templates" | "elements" | "photos" | "saved")}
+                {["templates", "elements", "photos", "profile", "saved"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => {
+                      const nextTab = tab as "templates" | "elements" | "photos" | "profile" | "saved";
+                      if (nextTab === "saved") {
+                        confirmDiscardChanges(() => setLeftTab(nextTab));
+                        return;
+                      }
+                      setLeftTab(nextTab);
+                    }}
                     className={`flex-1 py-2.5 transition-colors relative ${leftTab === tab ? "text-white border-b-2 border-white bg-white/[0.03]" : "text-slate-500 hover:text-slate-300"}`}>
                     {tab === "templates" ? <LayoutTemplate className="w-5 h-5 mx-auto" />
                       : tab === "elements" ? <Plus className="w-5 h-5 mx-auto" />
                       : tab === "photos" ? <ImageIcon className="w-5 h-5 mx-auto" />
+                      : tab === "profile" ? <Briefcase className="w-5 h-5 mx-auto" />
                       : <Bookmark className="w-5 h-5 mx-auto" />}
                     {tab === "saved" && savedDesigns.length > 0 && (
                       <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-emerald-500 text-[7px] font-bold text-white flex items-center justify-center">{savedDesigns.length}</span>
@@ -2104,6 +2457,15 @@ export default function ProfileStudioProfessional() {
                       );
                     })}
                   </div>
+                )}
+
+                {leftTab === "profile" && (
+                  <ProfileDataForm
+                    data={profileData}
+                    onUpdate={setProfileData}
+                    onAutoFill={autoFillTemplate}
+                    isLoading={isAutoFilling}
+                  />
                 )}
               </div>
             </motion.aside>

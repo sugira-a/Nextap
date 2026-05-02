@@ -117,7 +117,7 @@ def assign_card(card_id):
     if not target_user:
         return {'error': 'User not found'}, 404
 
-    if target_user.company_id != card.company_id:
+    if card.company_id and target_user.company_id != card.company_id:
         return {'error': 'User is not in card company'}, 403
 
     if card.claim_status:
@@ -161,7 +161,7 @@ def reassign_card(card_id):
     if not target_user:
         return {'error': 'User not found'}, 404
 
-    if target_user.company_id != card.company_id:
+    if card.company_id and target_user.company_id != card.company_id:
         return {'error': 'User is not in card company'}, 403
 
     if card.claim_status:
@@ -202,7 +202,7 @@ def update_card_status(card_id):
     if not card:
         return {'error': 'Card not found'}, 404
 
-    if user.role != 'admin' and card.company_id != user.company_id:
+    if user.role != 'admin' and card.company_id and card.company_id != user.company_id:
         return {'error': 'Card does not belong to your company'}, 403
 
     if card.claim_status and data['status'] in ['unassigned', 'retired']:

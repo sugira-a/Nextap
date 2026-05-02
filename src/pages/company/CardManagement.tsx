@@ -23,7 +23,6 @@ const CardManagement = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
-  const [creating, setCreating] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CompanyCard | null>(null);
@@ -72,21 +71,6 @@ const CardManagement = () => {
     } catch { toast.error("Error updating card"); }
   };
 
-  const handleGenerateCards = async () => {
-    try {
-      setCreating(true);
-      const companyId = await getCurrentCompanyId();
-      await apiRequest<any>(`/api/company/${companyId}/cards/generate`, {
-        method: "POST",
-        headers: { ...authHeader, "Content-Type": "application/json" },
-        body: JSON.stringify({ count: 5 }),
-      });
-      toast.success("5 cards generated");
-      fetchCards();
-    } catch { toast.error("Failed to generate cards"); }
-    finally { setCreating(false); }
-  };
-
   const openAssignDialog = async (card: CompanyCard) => {
     setSelectedCard(card);
     setSelectedEmployeeId(card.assigned_user_id || "");
@@ -121,19 +105,15 @@ const CardManagement = () => {
       className="max-w-5xl mx-auto space-y-8 py-2"
     >
       {/* Header */}
-      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
+      <div className="flex flex-col gap-4 border-b border-zinc-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Company</p>
-          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Card Inventory</h1>
-          <p className="text-sm text-zinc-400 mt-1">{total} cards</p>
+          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Assigned Cards</h1>
+          <p className="text-sm text-zinc-400 mt-1">{total} cards assigned to this company</p>
         </div>
-        <button
-          onClick={handleGenerateCards}
-          disabled={creating}
-          className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50"
-        >
-          {creating ? "Generating..." : "Add Cards"}
-        </button>
+        <div className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs text-zinc-500 sm:max-w-xs sm:text-right">
+          Only cards assigned by an admin are shown here.
+        </div>
       </div>
 
       {/* Filters */}
@@ -146,7 +126,7 @@ const CardManagement = () => {
           className="flex-1 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
         />
         <div className="flex gap-1.5 bg-zinc-100 rounded-lg p-1">
-          {["all", "active", "unassigned", "assigned", "suspended"].map(s => (
+          {["all", "active", "assigned", "suspended"].map(s => (
             <button
               key={s}
               onClick={() => { setStatus(s); setPage(1); }}
@@ -197,7 +177,7 @@ const CardManagement = () => {
                       "bg-zinc-100 text-zinc-500"
                     }`}
                   >
-                    {["active", "unassigned", "assigned", "suspended", "retired"].map(s => (
+                    {["active", "assigned", "suspended", "retired"].map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
@@ -228,14 +208,8 @@ const CardManagement = () => {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-40 gap-3 text-sm text-zinc-400">
-            <p>No cards found</p>
-            <button
-              onClick={handleGenerateCards}
-              disabled={creating}
-              className="bg-zinc-900 text-white text-xs px-4 py-2 rounded-lg hover:bg-zinc-700 transition-colors disabled:opacity-50"
-            >
-              Generate Cards
-            </button>
+            <p>No assigned cards found</p>
+            <p className="text-xs text-zinc-300">Unassigned stock and personal cards stay hidden from this workspace.</p>
           </div>
         )}
       </div>
@@ -243,7 +217,7 @@ const CardManagement = () => {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-xs text-zinc-400">{total} total Â· page {page} of {totalPages}</p>
+          <p className="text-xs text-zinc-400">{total} total - page {page} of {totalPages}</p>
           <div className="flex gap-2">
             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="text-sm px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40 transition-colors">Prev</button>
             <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="text-sm px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40 transition-colors">Next</button>

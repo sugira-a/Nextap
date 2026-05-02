@@ -6,7 +6,9 @@ import { toast } from "sonner";
 const navItems = [
   { label: "Overview", href: "/company" },
   { label: "Employees", href: "/company/employees" },
+  { label: "Employee Studio", href: "/company/employee-studio" },
   { label: "Cards", href: "/company/cards" },
+  { label: "Profile Studio", href: "/company/profile" },
   { label: "Invitations", href: "/company/invitations" },
   { label: "Analytics", href: "/company/analytics" },
   { label: "Settings", href: "/company/settings" },

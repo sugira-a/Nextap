@@ -8,6 +8,68 @@ import string
 
 bp = Blueprint('company', __name__, url_prefix='/api/company')
 
+PROFILE_TEMPLATE_FIELDS = {
+    'title', 'bio', 'phone', 'whatsapp', 'email_public', 'website', 'location',
+    'cover_color', 'button_style', 'font_style', 'background_image_url',
+    'background_overlay_opacity', 'background_blur_strength', 'section_order',
+    'layout_mode', 'section_positions', 'social_links_json', 'contact_action_order',
+    'enabled_contact_actions', 'name_size', 'title_size', 'bio_size', 'photo_size',
+    'photo_offset_y', 'name_bold', 'title_bold', 'bio_bold', 'body_background_color',
+    'body_text_color', 'body_background_image_url', 'action_hover_color',
+    'show_exchange_contact'
+}
+
+DEFAULT_EDITABLE_FIELDS = ['photo_url', 'phone', 'whatsapp', 'location']
+
+
+def _sanitize_template(payload):
+    if not isinstance(payload, dict):
+        return {}
+    return {key: value for key, value in payload.items() if key in PROFILE_TEMPLATE_FIELDS}
+
+
+def _ensure_profile(user):
+    if user.profile:
+        return user.profile
+
+    base_slug = f"{user.first_name}{user.last_name}".lower().replace(' ', '') or 'employee'
+    slug_candidate = base_slug
+    counter = 1
+    while Profile.query.filter_by(public_slug=slug_candidate).first():
+        counter += 1
+        slug_candidate = f"{base_slug}{counter}"
+
+    profile = Profile(user_id=user.id, public_slug=slug_candidate)
+    db.session.add(profile)
+    db.session.flush()
+    return profile
+
+
+def _apply_template_to_company_members(company, policy):
+    template = policy.profile_template or {}
+    editable_fields = set(policy.editable_fields or [])
+
+    if not template:
+        return 0
+
+    updated_profiles = 0
+    for member in company.users:
+        profile = _ensure_profile(member)
+        changed = False
+
+        for field, value in template.items():
+            if field in editable_fields:
+                continue
+            if getattr(profile, field, None) != value:
+                setattr(profile, field, value)
+                changed = True
+
+        if changed:
+            profile.updated_at = datetime.utcnow()
+            updated_profiles += 1
+
+    return updated_profiles
+
 
 def _new_card_short_code(length=6):
     alphabet = string.ascii_uppercase + string.digits
@@ -57,9 +119,10 @@ def create_company():
     policy = CompanyPolicy(
         company_id=company.id,
         required_fields=['title', 'photo_url'],
-        editable_fields=['title', 'bio', 'phone', 'whatsapp', 'email_public', 'website', 'location', 'photo_url'],
+        editable_fields=DEFAULT_EDITABLE_FIELDS,
         approval_required=False,
-        auto_approve=True
+        auto_approve=True,
+        profile_template={}
     )
     db.session.add(policy)
 
@@ -127,12 +190,14 @@ def get_company(company_id):
     if user and user.company_id != company_id and user.role != 'admin':
         return {'error': 'Access denied'}, 403
     
+    assigned_cards = [card for card in company.cards if card.assigned_user_id]
+
     return {
         'company': company.to_dict(),
         'stats': {
             'total_employees': len(company.users),
-            'total_cards': len(company.cards),
-            'active_cards': len([c for c in company.cards if c.status == 'active'])
+            'total_cards': len(assigned_cards),
+            'active_cards': len([c for c in assigned_cards if c.status == 'active'])
         }
     }, 200
 
@@ -252,6 +317,12 @@ def manage_company_policy(company_id):
         policy.auto_approve = data['auto_approve']
     if 'allow_custom_branding' in data:
         policy.allow_custom_branding = data['allow_custom_branding']
+    if 'profile_template' in data:
+        policy.profile_template = _sanitize_template(data.get('profile_template') or {})
+
+    applied_profiles = 0
+    if data.get('apply_template_to_members'):
+        applied_profiles = _apply_template_to_company_members(company, policy)
     
     policy.updated_at = datetime.utcnow()
     db.session.add(policy)
@@ -259,7 +330,8 @@ def manage_company_policy(company_id):
     
     return {
         'message': 'Policy updated successfully',
-        'policy': policy.to_dict()
+        'policy': policy.to_dict(),
+        'applied_profiles': applied_profiles,
     }, 200
 
 
@@ -311,7 +383,7 @@ def get_company_cards(company_id):
     status = request.args.get('status')
     search = request.args.get('search')
 
-    query = Card.query.filter_by(company_id=company_id)
+    query = Card.query.filter_by(company_id=company_id).filter(Card.assigned_user_id.isnot(None))
 
     if status and status != 'all':
         query = query.filter_by(status=status)

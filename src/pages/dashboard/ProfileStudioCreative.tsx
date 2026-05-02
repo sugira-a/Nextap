@@ -75,14 +75,14 @@ const MobileProfilePreview = ({ profile, colorScheme }: any) => {
     >
       {/* Header Accent */}
       <div
-        className="h-32 flex items-end justify-center pb-0"
+        className="h-32 flex items-end justify-center pb-4"
         style={{ background: `linear-gradient(135deg, ${colorScheme.accent} 0%, ${colorScheme.dark} 100%)` }}
       />
 
       {/* Main Content - Negative Margin for Avatar */}
       <div className="relative px-6 pb-6">
         {/* Avatar */}
-        <div className="flex justify-center -mt-16 mb-6">
+        <div className="flex justify-center -mt-12 mb-6">
           <div
             className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-white"
             style={{ borderColor: "white" }}
@@ -92,9 +92,9 @@ const MobileProfilePreview = ({ profile, colorScheme }: any) => {
         </div>
 
         {/* Name & Title */}
-        <h1 className="text-2xl font-heading font-bold text-center text-slate-900">{profile.name}</h1>
-        <p className="text-sm text-center text-slate-600 mt-1 font-medium">{profile.title}</p>
-        <p className="text-xs text-center text-slate-500 mt-0.5">{profile.company}</p>
+        <h1 className="text-2xl font-heading font-bold text-center text-slate-900 leading-tight break-words max-w-full">{profile.name}</h1>
+        <p className="text-sm text-center text-slate-600 mt-1 font-medium truncate">{profile.title}</p>
+        <p className="text-xs text-center text-slate-500 mt-0.5 truncate">{profile.company}</p>
 
         {/* Bio */}
         <p className="text-sm text-center text-slate-700 mt-4 leading-relaxed">{profile.bio}</p>
@@ -521,11 +521,11 @@ const ProfileStudioCreative = () => {
           {/* Right Panel - Live Preview */}
           <div className="lg:col-span-2">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className="sticky top-24 bg-slate-800/30 backdrop-blur rounded-2xl border border-slate-700 p-8 flex flex-col items-center justify-center min-h-[700px]"
-            >
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 }}
+                className="lg:sticky lg:top-24 bg-slate-800/30 backdrop-blur rounded-2xl border border-slate-700 p-6 sm:p-8 flex flex-col items-center justify-center lg:min-h-[700px] min-h-0"
+              >
               <div className="text-center mb-8">
                 <Sparkles className="w-6 h-6 text-green-500 mx-auto mb-2" />
                 <h3 className="text-lg font-semibold text-white">Live Preview</h3>

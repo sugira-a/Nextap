@@ -6,6 +6,19 @@ import { apiRequest } from "@/lib/api";
 import { getCurrentCompanyId } from "@/lib/auth-context";
 
 const availableFields = ["title", "bio", "phone", "whatsapp", "email_public", "website", "location", "photo_url"];
+const defaultEditableFields = ["photo_url", "phone", "whatsapp", "location"];
+
+const defaultProfileTemplate = {
+  title: "",
+  bio: "",
+  website: "",
+  location: "",
+  cover_color: "#111827",
+  button_style: "solid",
+  font_style: "modern",
+  body_background_color: "#ffffff",
+  body_text_color: "#111827",
+};
 
 const CompanySettings = () => {
   const navigate = useNavigate();
@@ -21,9 +34,11 @@ const CompanySettings = () => {
   });
   const [policySettings, setPolicySettings] = useState({
     required_fields: ["title", "photo_url"] as string[],
-    editable_fields: availableFields as string[],
+    editable_fields: defaultEditableFields as string[],
     approval_required: false,
     auto_approve: true,
+    profile_template: defaultProfileTemplate,
+    apply_template_to_members: false,
   });
 
   useEffect(() => {
@@ -41,9 +56,11 @@ const CompanySettings = () => {
         if (policyRes?.policy) {
           setPolicySettings({
             required_fields: policyRes.policy.required_fields || ["title", "photo_url"],
-            editable_fields: policyRes.policy.editable_fields || availableFields,
+            editable_fields: policyRes.policy.editable_fields || defaultEditableFields,
             approval_required: policyRes.policy.approval_required,
             auto_approve: policyRes.policy.auto_approve,
+            profile_template: { ...defaultProfileTemplate, ...(policyRes.policy.profile_template || {}) },
+            apply_template_to_members: false,
           });
         }
       } catch {
@@ -73,12 +90,20 @@ const CompanySettings = () => {
     try {
       setSaving(true);
       const companyId = await getCurrentCompanyId();
-      await apiRequest<any>(`/api/company/${companyId}/policy`, {
+      const response = await apiRequest<any>(`/api/company/${companyId}/policy`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}` },
         body: JSON.stringify(policySettings),
       });
-      toast.success("Policy settings saved");
+
+      if (policySettings.apply_template_to_members) {
+        const appliedCount = Number(response?.applied_profiles || 0);
+        toast.success(`Policy saved. Template applied to ${appliedCount} profile${appliedCount === 1 ? "" : "s"}.`);
+      } else {
+        toast.success("Policy settings saved");
+      }
+
+      setPolicySettings(prev => ({ ...prev, apply_template_to_members: false }));
     } catch { toast.error("Error saving policy"); }
     finally { setSaving(false); }
   };
@@ -188,6 +213,75 @@ const CompanySettings = () => {
       {/* Profile Policy */}
       <section className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-5">
         <p className="text-sm font-semibold text-zinc-900">Profile Policy</p>
+        <div className="rounded-xl border border-zinc-200 p-4 space-y-4">
+          <div>
+            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1">Company Profile Template</p>
+            <p className="text-xs text-zinc-400">These defaults are used as the base profile for company customers. Customers can only change fields allowed in Editable Fields.</p>
+          </div>
+          <div className="grid lg:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">Default Title</label>
+              <input
+                type="text"
+                value={policySettings.profile_template.title}
+                onChange={e => setPolicySettings({ ...policySettings, profile_template: { ...policySettings.profile_template, title: e.target.value } })}
+                placeholder="Sales Representative"
+                className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">Default Website</label>
+              <input
+                type="text"
+                value={policySettings.profile_template.website}
+                onChange={e => setPolicySettings({ ...policySettings, profile_template: { ...policySettings.profile_template, website: e.target.value } })}
+                placeholder="https://company.com"
+                className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">Default Location</label>
+              <input
+                type="text"
+                value={policySettings.profile_template.location}
+                onChange={e => setPolicySettings({ ...policySettings, profile_template: { ...policySettings.profile_template, location: e.target.value } })}
+                placeholder="Kampala, Uganda"
+                className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">Default Cover Color</label>
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={policySettings.profile_template.cover_color}
+                  onChange={e => setPolicySettings({ ...policySettings, profile_template: { ...policySettings.profile_template, cover_color: e.target.value } })}
+                  className="h-10 w-14 rounded-lg border border-zinc-200 cursor-pointer"
+                />
+                <span className="flex-1 border border-zinc-200 rounded-xl px-4 flex items-center text-sm font-mono text-zinc-500">{policySettings.profile_template.cover_color}</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide block mb-1.5">Default Bio</label>
+            <textarea
+              value={policySettings.profile_template.bio}
+              onChange={e => setPolicySettings({ ...policySettings, profile_template: { ...policySettings.profile_template, bio: e.target.value } })}
+              placeholder="Write a professional default company bio for customer profiles..."
+              rows={3}
+              className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
+            />
+          </div>
+          <label className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-50 cursor-pointer border border-zinc-100">
+            <input
+              type="checkbox"
+              checked={policySettings.apply_template_to_members}
+              onChange={e => setPolicySettings({ ...policySettings, apply_template_to_members: e.target.checked })}
+              className="w-4 h-4 accent-zinc-900"
+            />
+            <span className="text-sm text-zinc-700">Apply this template to all existing company customers now</span>
+          </label>
+        </div>
         <div className="grid lg:grid-cols-2 gap-6">
           <div>
             <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">Required Fields</p>

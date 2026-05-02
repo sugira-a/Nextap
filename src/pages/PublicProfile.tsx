@@ -72,6 +72,14 @@ type PublicProfileResponse = {
     first_name: string;
     last_name: string;
   } | null;
+  company?: {
+    id: string;
+    name: string;
+    slug: string;
+    logo_url?: string | null;
+    primary_color?: string | null;
+    accent_color?: string | null;
+  } | null;
 };
 
 const fadeUp = (delay: number) => ({
@@ -157,7 +165,21 @@ const renderCanvasElement = (element: CanvasElement, handlers?: CanvasHandlers) 
 
   switch (element.type) {
     case "text":
-      return <div key={element.id} style={base}>{element.text}</div>;
+      return (
+        <div
+          key={element.id}
+          style={{
+            ...base,
+            display: 'block',
+            whiteSpace: 'pre-wrap',
+            overflowWrap: 'break-word',
+            wordBreak: 'break-word',
+            lineHeight: element.fontSize ? Math.max(1, Math.round(element.fontSize * 0.06) + 1) : 1.15,
+          }}
+        >
+          {element.text}
+        </div>
+      );
     case "button": {
       if (isSaveBtn && handlers?.onSaveContact) {
         return (
@@ -195,7 +217,7 @@ const renderCanvasElement = (element: CanvasElement, handlers?: CanvasHandlers) 
       const inner = (
         <>
           {Icon && <Icon size={element.fontSize || 16} color={element.iconColor || element.color} style={{ flexShrink: 0 }} />}
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{element.text}</span>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "normal", display: 'inline-block', maxWidth: '100%' }}>{element.text}</span>
         </>
       );
       return href ? (
@@ -222,6 +244,7 @@ const PublicProfile = () => {
   const [shareForm, setShareForm] = useState<ShareForm>({ name: "", phone: "", email: "", company: "" });
   const [shareSubmitted, setShareSubmitted] = useState(false);
   const [activeDesign, setActiveDesign] = useState<ActiveDesign>(null);
+  const [company, setCompany] = useState<PublicProfileResponse["company"] | null>(null);
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const [canvasScale, setCanvasScale] = useState(1);
   const CANVAS_W = 390;
@@ -252,6 +275,7 @@ const PublicProfile = () => {
 
         if (profileRes.status === "fulfilled") {
           setProfile(profileRes.value.profile);
+          setCompany(profileRes.value.company || null);
           setDisplayName(profileRes.value.user ? profileRes.value.user.first_name.trim().replace(/\b\w/g, (c: string) => c.toUpperCase()) : username.replace(/[-_]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()));
           // Lazy-load heavy image fields after the profile renders
           apiRequest<{ photo_url: string | null; background_image_url: string | null; body_background_image_url: string | null }>(`/api/profile/${username}/images`)
@@ -471,8 +495,49 @@ const PublicProfile = () => {
   const cardTitleSize = profile.title_size || 14;
   const cardBioSize = profile.bio_size || 14;
 
+  const resolveTokenizedValue = (value?: string | null) => {
+    if (!value) return "";
+    const firstName = (displayName || "").split(" ")[0] || "";
+    const lastName = (displayName || "").split(" ").slice(1).join(" ");
+    const tokenMap: Record<string, string> = {
+      first_name: firstName,
+      last_name: lastName,
+      full_name: displayName,
+      title: profile.title || "",
+      bio: profile.bio || "",
+      phone: profile.phone || "",
+      whatsapp: profile.whatsapp || "",
+      email_public: profile.email_public || "",
+      website: profile.website || "",
+      company_website: profile.website || "",
+      location: profile.location || "",
+      profile_photo: profile.photo_url || "",
+      company_name: company?.name || "",
+      company_slug: company?.slug || "",
+      company_logo: profile.company_logo_url || company?.logo_url || "",
+      company_primary_color: profile.company_brand_color || company?.primary_color || "",
+      company_accent_color: company?.accent_color || "",
+      linkedin: profile.linkedin_url || "",
+      twitter: profile.twitter_url || "",
+      instagram: profile.instagram_url || "",
+    };
+    return value.replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (_, token: string) => tokenMap[token.toLowerCase()] ?? "");
+  };
+
+  const resolvedActiveDesign: ActiveDesign = activeDesign
+    ? {
+        ...activeDesign,
+        elements: (activeDesign.elements || []).map((el) => ({
+          ...el,
+          text: resolveTokenizedValue(el.text),
+          href: resolveTokenizedValue(el.href),
+          src: resolveTokenizedValue(el.src),
+        })),
+      }
+    : null;
+
   // If custom design exists, show only the design canvas + footer
-  if (activeDesign && activeDesign.elements && activeDesign.elements.length > 0) {
+  if (resolvedActiveDesign && resolvedActiveDesign.elements && resolvedActiveDesign.elements.length > 0) {
     return (
       <div className="min-h-screen bg-surface flex flex-col items-center justify-start sm:justify-center py-8 px-4">
         {shareOpen && (
@@ -528,14 +593,14 @@ const PublicProfile = () => {
                 transform: `scale(${canvasScale})`,
                 transformOrigin: "top left",
                 ...(activeDesign.bg?.type === "gradient"
-                  ? { background: activeDesign.bg.gradient }
-                  : activeDesign.bg?.imageUrl
-                    ? { backgroundImage: `url(${activeDesign.bg.imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
-                    : { backgroundColor: activeDesign.bg?.color || "#ffffff" }
+                  ? { background: resolvedActiveDesign.bg.gradient }
+                  : resolvedActiveDesign.bg?.imageUrl
+                    ? { backgroundImage: `url(${resolvedActiveDesign.bg.imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
+                    : { backgroundColor: resolvedActiveDesign.bg?.color || "#ffffff" }
                 ),
               }}
             >
-              {activeDesign.elements.map((element) => renderCanvasElement(element, {
+              {resolvedActiveDesign.elements.map((element) => renderCanvasElement(element, {
                 onSaveContact: handleSaveContact,
                 onShareContact: () => { setShareSubmitted(false); setShareForm({ name: "", phone: "", email: "", company: "" }); setShareOpen(true); },
               }))}
@@ -661,7 +726,7 @@ const PublicProfile = () => {
                 if (section === "contact") {
                   return (
                     <motion.div key="contact" className="absolute left-0 right-0 px-2" style={{ x: position.x, y: position.y }}>
-                      <div className="grid grid-cols-4 gap-3 mt-6">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
                         {contactActionOrder.map((actionId) => {
                           const action = contactActionLookup[actionId];
                           if (!action || enabledContactActions[actionId] === false || !action.show) {
@@ -738,7 +803,7 @@ const PublicProfile = () => {
 
             if (section === "contact") {
               return (
-                <motion.div key="contact" {...fadeUp(0.2 + index * 0.1)} className="grid grid-cols-4 gap-3 mt-6">
+                <motion.div key="contact" {...fadeUp(0.2 + index * 0.1)} className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
                   {contactActionOrder.map((actionId) => {
                     const action = contactActionLookup[actionId];
                     if (!action || enabledContactActions[actionId] === false || !action.show) {

@@ -1,12 +1,11 @@
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { apiRequest, storeAuthTokens } from "@/lib/api";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -15,9 +14,11 @@ const Register = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
     const trimmedName = name.trim().replace(/\s+/g, " ");
     const [firstName, ...rest] = trimmedName.split(" ");
@@ -61,47 +62,68 @@ const Register = () => {
       navigate("/dashboard");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Registration failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border rounded-2xl p-8 max-w-sm w-full shadow-sm">
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-heading font-bold text-sm">N</span>
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar dark />
+      
+      <div className="flex-1 flex items-center justify-center px-4 py-16 md:py-24 lg:py-32">
+        <motion.div
+          initial={{ opacity: 0, y: 24, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/5"
+        >
+          <div className="text-center mb-6">
+            <h1 className="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
+              Create your account
+            </h1>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">
+              Join to start networking
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1.5">
+              <label htmlFor="name" className="text-xs md:text-sm font-medium text-foreground">Full Name</label>
+              <input id="name" value={name} onChange={e => setName(e.target.value)} autoComplete="name" required placeholder="Name" className="w-full px-3.5 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 focus:ring-offset-background transition-all" />
             </div>
-            <span className="font-heading font-bold text-xl">NexTap</span>
-          </Link>
-          <h1 className="font-heading font-bold text-2xl text-foreground">Create your account</h1>
-          <p className="text-sm text-muted-foreground mt-1">Start networking smarter today</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Full Name</Label>
-            <Input id="name" value={name} onChange={e => setName(e.target.value)} autoComplete="name" className="mt-1.5" required />
-          </div>
-          <div>
-            <Label htmlFor="username">Username</Label>
-            <Input id="username" value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))} autoComplete="username" className="mt-1.5" placeholder="e.g. john-doe" required />
-            <p className="text-xs text-muted-foreground mt-1">Your public card URL: /u/{username || "your-username"}</p>
-          </div>
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" className="mt-1.5" required />
-          </div>
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" className="mt-1.5" required />
-          </div>
-          <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">Create Account</Button>
-        </form>
-        <p className="text-sm text-center text-muted-foreground mt-6">
-          Already have an account? <Link to="/login" className="text-accent hover:underline font-medium">Log in</Link>
-        </p>
-      </motion.div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="username" className="text-xs md:text-sm font-medium text-foreground">Username</label>
+              <input id="username" value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))} autoComplete="username" placeholder="username" required className="w-full px-3.5 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 focus:ring-offset-background transition-all" />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="text-xs md:text-sm font-medium text-foreground">Email address</label>
+              <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required placeholder="you@example.com" className="w-full px-3.5 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 focus:ring-offset-background transition-all" />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="text-xs md:text-sm font-medium text-foreground">Password</label>
+              <input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" required placeholder="••••••••" className="w-full px-3.5 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 focus:ring-offset-background transition-all" />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full mt-5 py-2 px-4 rounded-lg bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent/90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Creating account..." : "Create Account"}
+            </button>
+          </form>
+
+          <p className="text-xs md:text-sm text-center text-muted-foreground mt-4">
+            Already have an account? <Link to="/login" className="font-medium text-accent hover:text-accent/80 transition-colors">Sign in</Link>
+          </p>
+        </motion.div>
+      </div>
+
+      <Footer dark />
     </div>
   );
 };

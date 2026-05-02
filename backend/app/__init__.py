@@ -20,9 +20,11 @@ def create_app(config_name='development'):
     
     # Initialize extensions
     init_extensions(app)
-    
-    # Register blueprints FIRST so their routes take priority
-    register_blueprints(app)
+    # Ensure minimal user schema exists before importing routes (prevents
+    # import-time queries from failing on older SQLite DBs)
+    with app.app_context():
+        if _is_sqlite_database():
+            ensure_user_schema()
     
     # Root handler via error handler - let 404s serve SPA
     
@@ -42,12 +44,17 @@ def create_app(config_name='development'):
         if _should_run_db_bootstrap(app):
             db.create_all()
             if _is_sqlite_database():
+                ensure_user_schema()
                 ensure_profile_schema()
                 ensure_card_schema()
+                ensure_company_policy_schema()
                 ensure_shared_contact_schema()
                 ensure_card_design_schema()
             seed_default_admin()
             seed_default_company()
+    
+    # Register blueprints AFTER bootstrap so route imports don't run queries
+    register_blueprints(app)
     
     return app
 
@@ -76,13 +83,14 @@ def _should_run_db_bootstrap(app) -> bool:
 def seed_default_admin():
     """Create a default admin user for local development if none exists."""
     from .models import User, Profile
+    from sqlalchemy import text
 
     admin_email = os.getenv('ADMIN_EMAIL', 'admin@nextap.local')
     admin_password = os.getenv('ADMIN_PASSWORD', 'Admin123!')
     admin_first_name = os.getenv('ADMIN_FIRST_NAME', 'System')
     admin_last_name = os.getenv('ADMIN_LAST_NAME', 'Admin')
 
-    existing_admin = User.query.filter_by(role='admin').first()
+    existing_admin = db.session.execute(text("SELECT id FROM user WHERE role = :role LIMIT 1"), {'role': 'admin'}).fetchone()
     if existing_admin:
         return
 
@@ -116,16 +124,19 @@ def seed_default_admin():
 
 def seed_default_company():
     """Create a starter company for the default admin on fresh SQLite databases."""
-    from .models import Company, CompanyPolicy, User
+    from .models import Company, CompanyPolicy
+    from sqlalchemy import text
 
-    admin_user = User.query.filter_by(role='admin').first()
-    if not admin_user:
+    res = db.session.execute(text("SELECT id, company_id FROM user WHERE role = :role LIMIT 1"), {'role': 'admin'}).fetchone()
+    if not res:
         return
 
-    existing_company = Company.query.filter_by(admin_user_id=admin_user.id).first()
+    admin_user_id, admin_company_id = res[0], res[1]
+
+    existing_company = db.session.execute(text("SELECT id FROM company WHERE admin_user_id = :id LIMIT 1"), {'id': admin_user_id}).fetchone()
     if existing_company:
-        if not admin_user.company_id:
-            admin_user.company_id = existing_company.id
+        if not admin_company_id:
+            db.session.execute(text("UPDATE user SET company_id = :cid WHERE id = :id"), {'cid': existing_company[0], 'id': admin_user_id})
             db.session.commit()
         return
 
@@ -144,7 +155,7 @@ def seed_default_company():
         accent_color=os.getenv('DEFAULT_COMPANY_ACCENT_COLOR', '#22C55E'),
         plan='starter',
         status='active',
-        admin_user_id=admin_user.id,
+        admin_user_id=admin_user_id,
     )
     db.session.add(company)
     db.session.flush()
@@ -152,13 +163,15 @@ def seed_default_company():
     policy = CompanyPolicy(
         company_id=company.id,
         required_fields=['title', 'photo_url'],
-        editable_fields=['title', 'bio', 'phone', 'whatsapp', 'email_public', 'website', 'location', 'photo_url'],
+        editable_fields=['photo_url', 'phone', 'whatsapp', 'location'],
         approval_required=False,
         auto_approve=True,
+        profile_template={},
     )
     db.session.add(policy)
 
-    admin_user.company_id = company.id
+    db.session.commit()
+    db.session.execute(text("UPDATE user SET company_id = :cid WHERE id = :id"), {'cid': company.id, 'id': admin_user_id})
     db.session.commit()
 
     print(f"[INFO] Seeded default company: {company.name} ({company.slug})")
@@ -214,6 +227,30 @@ def ensure_profile_schema():
     db.session.commit()
 
 
+def ensure_user_schema():
+    """Add user columns introduced after first SQLite bootstrap."""
+    from sqlalchemy import text
+
+    if not _is_sqlite_database():
+        return
+
+    existing_columns = {
+        row[1]
+        for row in db.session.execute(text("PRAGMA table_info(user)"))
+    }
+
+    column_definitions = {
+        'reset_token': 'ALTER TABLE user ADD COLUMN reset_token VARCHAR(128)',
+        'reset_token_expires': 'ALTER TABLE user ADD COLUMN reset_token_expires DATETIME',
+    }
+
+    for column_name, ddl in column_definitions.items():
+        if column_name not in existing_columns:
+            db.session.execute(text(ddl))
+
+    db.session.commit()
+
+
 def _generate_short_card_code(length=6):
     alphabet = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(length))
@@ -249,6 +286,24 @@ def ensure_card_schema():
 
         card.short_code = candidate
         existing_codes.add(candidate)
+
+    db.session.commit()
+
+
+def ensure_company_policy_schema():
+    """Add company_policy columns introduced after first SQLite bootstrap."""
+    from sqlalchemy import text
+
+    if not _is_sqlite_database():
+        return
+
+    existing_columns = {
+        row[1]
+        for row in db.session.execute(text("PRAGMA table_info(company_policy)"))
+    }
+
+    if 'profile_template' not in existing_columns:
+        db.session.execute(text("ALTER TABLE company_policy ADD COLUMN profile_template JSON"))
 
     db.session.commit()
 

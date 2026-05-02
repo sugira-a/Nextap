@@ -7,6 +7,35 @@ from datetime import datetime
 bp = Blueprint('profile', __name__, url_prefix='/api/profile')
 
 
+def _generate_profile_slug(user: User) -> str:
+    """Generate a unique public slug for users missing a profile."""
+    full_name = f"{(user.first_name or '').strip()}{(user.last_name or '').strip()}".lower()
+    normalized = ''.join(ch for ch in full_name if ch.isalnum())
+    base_slug = normalized or 'user'
+    candidate = base_slug
+    suffix = 1
+    while Profile.query.filter_by(public_slug=candidate).first():
+        suffix += 1
+        candidate = f"{base_slug}{suffix}"
+    return candidate
+
+
+def _ensure_profile_for_user(user: User):
+    """Create a profile lazily for authenticated users that predate profile creation."""
+    if user.profile:
+        return user.profile
+
+    profile = Profile(
+        user_id=user.id,
+        public_slug=_generate_profile_slug(user),
+        approval_status='approved',
+        completion_status=0,
+    )
+    db.session.add(profile)
+    db.session.commit()
+    return profile
+
+
 def _strip_base64(value):
     """Return None if value is a base64 data URL (can be several MB), keep plain URLs."""
     if value and isinstance(value, str) and value.startswith('data:'):
@@ -14,56 +43,7 @@ def _strip_base64(value):
     return value
 
 
-@bp.route('/<slug>', methods=['GET'])
-def get_public_profile(slug):
-    """Get public profile by slug"""
-    profile = Profile.query.filter_by(public_slug=slug).first()
-    
-    if not profile:
-        return {'error': 'Profile not found'}, 404
-    
-    # Track view event when a related card exists
-    if profile.user and profile.user.cards:
-        event = AnalyticsEvent(
-            profile_id=profile.id,
-            user_id=profile.user_id,
-            card_id=profile.user.cards[0].id,
-            event_type='profile_view',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent', ''),
-            referrer=request.referrer
-        )
-        db.session.add(event)
-        db.session.commit()
-
-    profile_data = profile.to_dict(include_sensitive=False)
-    # Strip large base64 blobs from the main response — load them lazily via /images endpoint
-    for field in ('photo_url', 'background_image_url', 'body_background_image_url'):
-        profile_data[field] = _strip_base64(profile_data.get(field))
-
-    return {
-        'profile': profile_data,
-        'user': {
-            'id': profile.user.id,
-            'first_name': profile.user.first_name,
-            'last_name': profile.user.last_name,
-            'role': profile.user.role
-        } if profile.user else None
-    }, 200
-
-
-@bp.route('/<slug>/images', methods=['GET'])
-def get_public_profile_images(slug):
-    """Lazy-load heavy image fields (base64) separately so the main profile loads fast."""
-    profile = Profile.query.filter_by(public_slug=slug).first()
-    if not profile:
-        return {'error': 'Profile not found'}, 404
-    return {
-        'photo_url': profile.photo_url or None,
-        'background_image_url': profile.background_image_url or None,
-        'body_background_image_url': profile.body_background_image_url or None,
-    }, 200
-
+# ── Authenticated User Profile Routes (must come before /<slug> generic route) ──
 
 @bp.route('/me', methods=['GET'])
 def get_my_profile():
@@ -72,11 +52,10 @@ def get_my_profile():
     if not user:
         return {'error': 'Authentication required'}, 401
     
-    if not user.profile:
-        return {'error': 'Profile not found'}, 404
+    profile = _ensure_profile_for_user(user)
     
     return {
-        'profile': user.profile.to_dict(include_sensitive=True)
+        'profile': profile.to_dict(include_sensitive=True)
     }, 200
 
 
@@ -88,11 +67,9 @@ def update_my_profile():
     if not user:
         return {'error': 'Authentication required'}, 401
     
-    if not user.profile:
-        return {'error': 'Profile not found'}, 404
+    profile = _ensure_profile_for_user(user)
     
     data = request.get_json()
-    profile = user.profile
     
     # Check company policy if user is part of company
     if user.company_id:
@@ -168,6 +145,102 @@ def update_my_profile():
     return {
         'message': 'Profile updated successfully',
         'profile': profile.to_dict(include_sensitive=True)
+    }, 200
+
+
+@bp.route('/me/contacts', methods=['GET'])
+def get_my_contacts():
+    """Return all contacts shared with the current user's public profile."""
+    user = get_jwt_user()
+    if not user:
+        return {'error': 'Authentication required'}, 401
+
+    profile = _ensure_profile_for_user(user)
+
+    unread_only = request.args.get('unread') == 'true'
+
+    query = SharedContact.query.filter_by(profile_id=profile.id)
+    if unread_only:
+        query = query.filter_by(is_read=False)
+
+    contacts = query.order_by(SharedContact.submitted_at.desc()).all()
+    unread_count = SharedContact.query.filter_by(profile_id=profile.id, is_read=False).count()
+
+    return {
+        'contacts': [c.to_dict() for c in contacts],
+        'unread_count': unread_count,
+    }, 200
+
+
+@bp.route('/me/contacts/<contact_id>/read', methods=['POST'])
+def mark_contact_as_read(contact_id):
+    """Mark a contact as read"""
+    user = get_jwt_user()
+    if not user:
+        return {'error': 'Authentication required'}, 401
+
+    profile = _ensure_profile_for_user(user)
+
+    contact = SharedContact.query.get(contact_id)
+    if not contact or contact.profile_id != profile.id:
+        return {'error': 'Contact not found'}, 404
+
+    contact.is_read = True
+    db.session.commit()
+
+    return {'message': 'Contact marked as read'}, 200
+
+
+# ── Public Profile Routes (generic slug route must come AFTER /me routes) ──
+
+@bp.route('/<slug>', methods=['GET'])
+def get_public_profile(slug):
+    """Get public profile by slug"""
+    profile = Profile.query.filter_by(public_slug=slug).first()
+    
+    if not profile:
+        return {'error': 'Profile not found'}, 404
+    
+    # Track view event when a related card exists
+    if profile.user and profile.user.cards:
+        event = AnalyticsEvent(
+            profile_id=profile.id,
+            user_id=profile.user_id,
+            card_id=profile.user.cards[0].id,
+            event_type='profile_view',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent', ''),
+            referrer=request.referrer
+        )
+        db.session.add(event)
+        db.session.commit()
+
+    profile_data = profile.to_dict(include_sensitive=False)
+    # Strip large base64 blobs from the main response — load them lazily via /images endpoint
+    for field in ('photo_url', 'background_image_url', 'body_background_image_url'):
+        profile_data[field] = _strip_base64(profile_data.get(field))
+
+    return {
+        'profile': profile_data,
+        'user': {
+            'id': profile.user.id,
+            'first_name': profile.user.first_name,
+            'last_name': profile.user.last_name,
+            'role': profile.user.role
+        } if profile.user else None
+    }, 200
+
+
+@bp.route('/<slug>/images', methods=['GET'])
+def get_public_profile_images(slug):
+    """Lazy-load heavy image fields (base64) separately so the main profile loads fast."""
+    profile = Profile.query.filter_by(public_slug=slug).first()
+    if not profile:
+        return {'error': 'Profile not found'}, 404
+    return {
+        'photo_url': profile.photo_url or None,
+        'background_image_url': profile.background_image_url or None,
+        'body_background_image_url': profile.body_background_image_url or None,
     }, 200
 
 
@@ -250,48 +323,3 @@ def share_contact(slug):
     db.session.commit()
 
     return {'message': 'Contact shared successfully', 'id': contact.id}, 201
-
-
-@bp.route('/me/contacts', methods=['GET'])
-def get_my_contacts():
-    """Return all contacts shared with the current user's public profile."""
-    user = get_jwt_user()
-    if not user:
-        return {'error': 'Authentication required'}, 401
-
-    if not user.profile:
-        return {'error': 'Profile not found'}, 404
-
-    unread_only = request.args.get('unread') == 'true'
-
-    query = SharedContact.query.filter_by(profile_id=user.profile.id)
-    if unread_only:
-        query = query.filter_by(is_read=False)
-
-    contacts = query.order_by(SharedContact.submitted_at.desc()).all()
-    unread_count = SharedContact.query.filter_by(profile_id=user.profile.id, is_read=False).count()
-
-    return {
-        'contacts': [c.to_dict() for c in contacts],
-        'unread_count': unread_count,
-    }, 200
-
-
-@bp.route('/me/contacts/<contact_id>/read', methods=['POST'])
-def mark_contact_read(contact_id):
-    """Mark a received contact as read."""
-    user = get_jwt_user()
-    if not user:
-        return {'error': 'Authentication required'}, 401
-
-    if not user.profile:
-        return {'error': 'Profile not found'}, 404
-
-    contact = SharedContact.query.filter_by(id=contact_id, profile_id=user.profile.id).first()
-    if not contact:
-        return {'error': 'Contact not found'}, 404
-
-    contact.is_read = True
-    db.session.commit()
-
-    return {'message': 'Marked as read'}, 200

@@ -43,6 +43,10 @@ class User(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = db.Column(db.DateTime)
     
+    # Password reset
+    reset_token = db.Column(db.String(128), unique=True)
+    reset_token_expires = db.Column(db.DateTime)
+    
     # Relationships
     profile = db.relationship('Profile', backref='user', uselist=False, cascade='all, delete-orphan')
     company = db.relationship('Company', backref='users', foreign_keys=[company_id])
@@ -277,8 +281,8 @@ class Card(db.Model):
     code = db.Column(db.String(128), unique=True, nullable=False, index=True)  # NFC code
     short_code = db.Column(db.String(16), unique=True, nullable=False, index=True)
     
-    # Company assignment
-    company_id = db.Column(db.String(36), db.ForeignKey('company.id'), nullable=False)
+    # Company assignment; personal cards may omit a company target.
+    company_id = db.Column(db.String(36), db.ForeignKey('company.id'), nullable=True)
     
     # User assignment
     assigned_user_id = db.Column(db.String(36), db.ForeignKey('user.id'))
@@ -384,6 +388,9 @@ class CompanyPolicy(db.Model):
     
     # Branding control
     allow_custom_branding = db.Column(db.Boolean, default=False)
+
+    # Company-level default profile values applied to members.
+    profile_template = db.Column(db.JSON, default=dict)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -397,6 +404,8 @@ class CompanyPolicy(db.Model):
             'approval_required': self.approval_required,
             'auto_approve': self.auto_approve,
             'allow_custom_branding': self.allow_custom_branding,
+            'profile_template': self.profile_template or {},
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 

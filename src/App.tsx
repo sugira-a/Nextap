@@ -15,10 +15,13 @@ const ContactPage = lazy(() => import("./pages/marketing/ContactPage"));
 const PrivacyPage = lazy(() => import("./pages/marketing/PrivacyPage"));
 const TermsPage = lazy(() => import("./pages/marketing/TermsPage"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile"));
+const DemoPage = lazy(() => import("./pages/DemoPage"));
 const CardRoute = lazy(() => import("./pages/CardRoute"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Welcome = lazy(() => import("./pages/Welcome"));
 const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
 const DashboardOverview = lazy(() => import("./pages/dashboard/DashboardOverview"));
 const EditProfile = lazy(() => import("./pages/dashboard/ProfileStudioProfessional"));
@@ -42,6 +45,7 @@ const AdminCompanyView = lazy(() => import("./pages/admin/AdminCompanyView"));
 const CompanyLayout = lazy(() => import("./pages/company/CompanyLayout"));
 const CompanyOverview = lazy(() => import("./pages/company/CompanyOverview"));
 const EmployeeManagement = lazy(() => import("./pages/company/EmployeeManagement"));
+const EmployeeStudio = lazy(() => import("./pages/company/EmployeeStudio"));
 const CardManagement = lazy(() => import("./pages/company/CardManagement"));
 const InvitationManagement = lazy(() => import("./pages/company/InvitationManagement"));
 const CompanySettings = lazy(() => import("./pages/company/CompanySettings"));
@@ -56,7 +60,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading...</div>}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
@@ -69,10 +73,13 @@ const App = () => (
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/u/:username" element={<PublicProfile />} />
+            <Route path="/demo" element={<DemoPage />} />
             <Route path="/card/:code" element={<CardRoute />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/welcome" element={<Welcome />} />
 
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
@@ -101,7 +108,9 @@ const App = () => (
             <Route path="/company" element={<CompanyLayout />}>
               <Route index element={<CompanyOverview />} />
               <Route path="employees" element={<EmployeeManagement />} />
+              <Route path="employee-studio" element={<EmployeeStudio />} />
               <Route path="cards" element={<CardManagement />} />
+              <Route path="profile" element={<EditProfile />} />
               <Route path="invitations" element={<InvitationManagement />} />
               <Route path="analytics" element={<CompanyAnalytics />} />
               <Route path="settings" element={<CompanySettings />} />
