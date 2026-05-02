@@ -72,29 +72,40 @@ def register():
 @validate_request_json('email', 'password')
 def login():
     """Login user"""
-    data = request.get_json()
-    
-    user = User.query.filter_by(email=data['email']).first()
-    
-    if not user or not user.check_password(data['password']):
-        return {'error': 'Invalid email or password'}, 401
-    
-    if user.status != 'active':
-        return {'error': 'Account is not active'}, 403
-    
-    # Update last login
-    user.last_login = datetime.utcnow()
-    db.session.commit()
-    
-    # Create tokens
-    access_token, refresh_token = create_tokens(user.id)
-    
-    return {
-        'message': 'Logged in successfully',
-        'user': user.to_dict(),
-        'access_token': access_token,
-        'refresh_token': refresh_token
-    }, 200
+    try:
+        data = request.get_json()
+        if not data:
+            return {'error': 'Request body is required'}, 400
+        
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+        
+        if not email or not password:
+            return {'error': 'Email and password are required'}, 400
+        
+        user = User.query.filter_by(email=email).first()
+        
+        if not user or not user.check_password(password):
+            return {'error': 'Invalid email or password'}, 401
+        
+        if user.status != 'active':
+            return {'error': 'Account is not active'}, 403
+        
+        # Update last login
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+        
+        # Create tokens
+        access_token, refresh_token = create_tokens(user.id)
+        
+        return {
+            'message': 'Logged in successfully',
+            'user': user.to_dict(),
+            'access_token': access_token,
+            'refresh_token': refresh_token
+        }, 200
+    except Exception as e:
+        return {'error': str(e)}, 500
 
 
 @bp.route('/me', methods=['GET'])
