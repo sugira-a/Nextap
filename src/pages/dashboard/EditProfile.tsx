@@ -680,7 +680,7 @@ const EditProfile = () => {
         fontStyle: template.fontStyle,
       },
     }));
-    toast.success(`${template.name} template applied`);
+    toast.success(`${template.name} template applied`, { duration: 2000 });
   };
 
   const applyBackgroundImageFile = (event: ChangeEvent<HTMLInputElement>) => {
@@ -693,11 +693,11 @@ const EditProfile = () => {
     reader.onload = () => {
       const result = typeof reader.result === "string" ? reader.result : "";
       if (!result) {
-        toast.error("Failed to read image file");
+        toast.error("Failed to read image file", { duration: 2000 });
         return;
       }
       update("backgroundImageUrl", result);
-      toast.success("Background image selected");
+      toast.success("Background image selected", { duration: 2000 });
     };
     reader.readAsDataURL(file);
   };
@@ -712,11 +712,11 @@ const EditProfile = () => {
     reader.onload = () => {
       const result = typeof reader.result === "string" ? reader.result : "";
       if (!result) {
-        toast.error("Failed to read image file");
+        toast.error("Failed to read image file", { duration: 2000 });
         return;
       }
       update("avatar", result);
-      toast.success("Profile image selected");
+      toast.success("Profile image selected", { duration: 2000 });
     };
     reader.readAsDataURL(file);
   };
@@ -884,12 +884,12 @@ const EditProfile = () => {
 
       setSaveState("saved");
       if (showToast) {
-        toast.success("Profile saved successfully");
+        toast.success("Profile saved successfully", { duration: 2000 });
       }
     } catch (error) {
       setSaveState("error");
       if (showToast) {
-        toast.error(error instanceof Error ? error.message : "Failed to save profile");
+        toast.error(error instanceof Error ? error.message : "Failed to save profile", { duration: 2000 });
       }
     }
   };

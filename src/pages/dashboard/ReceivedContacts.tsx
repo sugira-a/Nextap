@@ -45,7 +45,7 @@ const downloadVCard = (contact: ReceivedContact) => {
   a.download = `${contact.name.replace(/\s+/g, "_")}.vcf`;
   a.click();
   URL.revokeObjectURL(url);
-  toast.success("vCard downloaded");
+  toast.success("vCard downloaded", { duration: 2000 });
 };
 
 const ReceivedContacts = () => {
@@ -65,7 +65,7 @@ const ReceivedContacts = () => {
       setContacts(res.contacts);
       setUnreadCount(res.unread_count);
     } catch {
-      toast.error("Failed to load contacts.");
+      toast.error("Failed to load contacts.", { duration: 2000 });
     } finally {
       setLoading(false);
     }
@@ -83,7 +83,7 @@ const ReceivedContacts = () => {
       setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, is_read: true } : c)));
       setUnreadCount((n) => Math.max(0, n - 1));
     } catch {
-      toast.error("Failed to mark as read.");
+      toast.error("Failed to mark as read.", { duration: 2000 });
     }
   };
 
@@ -107,7 +107,7 @@ const ReceivedContacts = () => {
     a.download = "contacts.csv";
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("CSV exported");
+    toast.success("CSV exported", { duration: 2000 });
   };
 
   const formatDate = (iso: string) =>

@@ -32,7 +32,7 @@ const Links = () => {
       ]);
     };
 
-    load().catch(() => toast.error("Failed to load links"));
+    load().catch(() => toast.error("Failed to load links", { duration: 2000 }));
   }, []);
 
   const addLink = () => setLinks([...links, { id: Date.now().toString(), platform: "", url: "" }]);
@@ -58,9 +58,9 @@ const Links = () => {
         }),
       });
 
-      toast.success("Links saved");
+      toast.success("Links saved", { duration: 2000 });
     } catch {
-      toast.error("Failed to save links");
+      toast.error("Failed to save links", { duration: 2000 });
     } finally {
       setSaving(false);
     }

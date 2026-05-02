@@ -30,7 +30,7 @@ const SettingsPage = () => {
       setEmail(data.user.email);
       setSlug(data.profile?.public_slug || "");
     };
-    load().catch(() => toast.error("Failed to load settings"));
+    load().catch(() => toast.error("Failed to load settings", { duration: 2000 }));
   }, []);
 
   const saveAccount = async () => {
@@ -42,9 +42,9 @@ const SettingsPage = () => {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify({ public_slug: slug }),
       });
-      toast.success("Username updated");
+      toast.success("Username updated", { duration: 2000 });
     } catch {
-      toast.error("Failed to save settings");
+      toast.error("Failed to save settings", { duration: 2000 });
     } finally {
       setSavingAccount(false);
     }
@@ -57,8 +57,8 @@ const SettingsPage = () => {
   };
 
   const savePassword = async () => {
-    if (newPassword !== confirmPassword) { toast.error("Passwords don't match"); return; }
-    if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+    if (newPassword !== confirmPassword) { toast.error("Passwords don't match", { duration: 2000 }); return; }
+    if (newPassword.length < 8) { toast.error("Password must be at least 8 characters", { duration: 2000 }); return; }
     try {
       setSavingPassword(true);
       const token = localStorage.getItem("access_token");
@@ -67,11 +67,11 @@ const SettingsPage = () => {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
       });
-      toast.success("Password changed successfully");
+      toast.success("Password changed successfully", { duration: 2000 });
       setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
       setPasswordOpen(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to change password");
+      toast.error(err instanceof Error ? err.message : "Failed to change password", { duration: 2000 });
     } finally {
       setSavingPassword(false);
     }
@@ -89,7 +89,7 @@ const SettingsPage = () => {
       localStorage.removeItem("refresh_token");
       window.location.href = "/";
     } catch {
-      toast.error("Failed to delete account");
+      toast.error("Failed to delete account", { duration: 2000 });
       setDeleting(false);
       setDeleteOpen(false);
     }

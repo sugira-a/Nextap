@@ -4,6 +4,23 @@ type ApiErrorPayload = {
   missing?: string[];
 };
 
+// Simple cache for profile data with 5-minute TTL
+const profileCache = new Map<string, { data: any; expires: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCachedProfile(key: string): any | null {
+  const cached = profileCache.get(key);
+  if (cached && cached.expires > Date.now()) {
+    return cached.data;
+  }
+  profileCache.delete(key);
+  return null;
+}
+
+function setCachedProfile(key: string, data: any): void {
+  profileCache.set(key, { data, expires: Date.now() + CACHE_TTL });
+}
+
 const BACKEND_ROUTE_PREFIX = import.meta.env.VITE_BACKEND_ROUTE_PREFIX || "/_/backend";
 
 function isLocalDevelopmentHost(hostname: string): boolean {
@@ -160,6 +177,8 @@ export function isNotFoundApiError(error: unknown): boolean {
     message.includes("failed to fetch")
   );
 }
+
+export { getCachedProfile, setCachedProfile };
 
 export async function apiRequestWithFallback<T>(requests: Array<() => Promise<T>>): Promise<T> {
   let fallbackError: unknown = null;

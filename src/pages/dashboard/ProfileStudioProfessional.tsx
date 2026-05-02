@@ -413,8 +413,8 @@ const ShareContactModal = memo(({ onClose, cardOwnerName, profileSlug }: { onClo
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!form.name.trim()) { toast.error("Name is required."); return; }
-    if (!form.phone.trim() && !form.email.trim()) { toast.error("Phone or email is required."); return; }
+    if (!form.name.trim()) { toast.error("Name is required.", { duration: 2000 }); return; }
+    if (!form.phone.trim() && !form.email.trim()) { toast.error("Phone or email is required.", { duration: 2000 }); return; }
     setLoading(true);
     try {
       if (profileSlug) {
@@ -423,10 +423,10 @@ const ShareContactModal = memo(({ onClose, cardOwnerName, profileSlug }: { onClo
           body: JSON.stringify(form),
         });
       }
-      toast.success(`Contact shared with ${cardOwnerName}!`);
+      toast.success(`Contact shared with ${cardOwnerName}!`, { duration: 2000 });
       setSubmitted(true);
     } catch {
-      toast.error("Failed to share contact. Please try again.");
+      toast.error("Failed to share contact. Please try again.", { duration: 2000 });
     } finally {
       setLoading(false);
     }
@@ -893,7 +893,7 @@ export default function ProfileStudioProfessional() {
       el.w = 180; el.h = 180; el.radius = 12;
       setElements((prev) => [...prev, el]);
       setSelectedId(el.id);
-      toast.success("Image added to canvas!");
+      toast.success("Image added to canvas!", { duration: 2000 });
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -920,7 +920,7 @@ export default function ProfileStudioProfessional() {
         }))
       );
     } catch {
-      toast.error("Photo search failed. Showing demo images.");
+      toast.error("Photo search failed. Showing demo images.", { duration: 2000 });
       setPhotoResults(DEMO_PHOTOS);
     } finally {
       setPhotoLoading(false);
@@ -948,7 +948,7 @@ export default function ProfileStudioProfessional() {
       reader.onload = () => {
         if (typeof reader.result === "string") {
           updateElement(selectedElement.id, { src: reader.result });
-          toast.success("Background removed!");
+          toast.success("Background removed!", { duration: 2000 });
           setRemovingBg(false);
         }
       };
@@ -956,7 +956,7 @@ export default function ProfileStudioProfessional() {
     } catch (err) {
       console.error("Remove BG error:", err);
       setRemovingBg(false);
-      toast.error("Background removal failed. Try uploading a local image first.");
+      toast.error("Background removal failed. Try uploading a local image first.", { duration: 2000 });
     }
   };
 
@@ -1005,7 +1005,7 @@ export default function ProfileStudioProfessional() {
   // Auto-fill template with profile data
   const autoFillTemplate = () => {
     if (!profileData.firstName || !profileData.lastName) {
-      toast.error("Please add at least first name and last name");
+      toast.error("Please add at least first name and last name", { duration: 2000 });
       return;
     }
 
@@ -1082,9 +1082,9 @@ export default function ProfileStudioProfessional() {
         return updated;
       });
 
-      toast.success("✨ Template auto-filled with your profile data!");
+      toast.success("✨ Template auto-filled with your profile data!", { duration: 2000 });
     } catch (error) {
-      toast.error("Failed to auto-fill template");
+      toast.error("Failed to auto-fill template", { duration: 2000 });
       console.error(error);
     } finally {
       setIsAutoFilling(false);
@@ -1101,7 +1101,7 @@ export default function ProfileStudioProfessional() {
       .then((id) => setCompanyId(id))
       .catch(() => {
         setCompanyId(null);
-        toast.error("Could not resolve your company workspace.");
+        toast.error("Could not resolve your company workspace.", { duration: 2000 });
       });
   }, [isCompanyWorkspace]);
 
@@ -1158,16 +1158,16 @@ export default function ProfileStudioProfessional() {
         setSavedDesigns((prev) => prev.map((d) => ({ ...d, isActive: d.id === saved.id })));
 
         const appliedProfiles = await applyDesignToCompanyCustomers(saved.id);
-        toast.success(`"${name}" saved and applied to ${appliedProfiles} customer profiles.`);
+        toast.success(`"${name}" saved and applied to ${appliedProfiles} customer profiles.`, { duration: 2000 });
       } else {
-        toast.success(`"${name}" saved!`);
+        toast.success(`"${name}" saved!`, { duration: 2000 });
       }
       rememberSavedDraft(JSON.stringify({ elements, bg, activeTemplate, profileData }));
     } catch (error) {
       // Rollback on error
       setSavedDesigns((prev) => prev.filter((d) => !d.id.startsWith("temp-")));
       setSaveNameInput("");
-      toast.error("Failed to save design.");
+      toast.error("Failed to save design.", { duration: 2000 });
     } finally {
       setSavingDesignId(null);
     }
@@ -1186,7 +1186,7 @@ export default function ProfileStudioProfessional() {
         activeTemplate: design.templateId,
         profileData,
       }));
-      toast.success(`"${design.name}" loaded!`);
+      toast.success(`"${design.name}" loaded!`, { duration: 2000 });
     });
   };
 
@@ -1208,11 +1208,11 @@ export default function ProfileStudioProfessional() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token ?? ""}` },
       });
-      toast.success(`"${designToDelete.name}" deleted!`);
+      toast.success(`"${designToDelete.name}" deleted!`, { duration: 2000 });
     } catch (error) {
       // Rollback on error
       setSavedDesigns(previousDesigns);
-      toast.error("Failed to delete design.");
+      toast.error("Failed to delete design.", { duration: 2000 });
     } finally {
       setDeletingDesignId(null);
     }
@@ -1239,13 +1239,13 @@ export default function ProfileStudioProfessional() {
 
         if (isCompanyWorkspace) {
           const appliedProfiles = await applyDesignToCompanyCustomers(id);
-          toast.success(`Design is live and applied to ${appliedProfiles} customer profiles.`);
+          toast.success(`Design is live and applied to ${appliedProfiles} customer profiles.`, { duration: 2000 });
         } else {
-          toast.success("Design marked as active card layout!");
+          toast.success("Design marked as active card layout!", { duration: 2000 });
         }
       }
     } catch {
-      toast.error("Failed to update active design.");
+      toast.error("Failed to update active design.", { duration: 2000 });
     }
   };
 
@@ -1319,7 +1319,7 @@ export default function ProfileStudioProfessional() {
     a.download = `${fullName.replace(/\s+/g, "_") || "contact"}.vcf`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Contact saved with all profile information!");
+    toast.success("Contact saved with all profile information!", { duration: 2000 });
   };
 
   // Quick-add icon row presets
@@ -1692,16 +1692,16 @@ export default function ProfileStudioProfessional() {
 
             {/* Save */}
             <button
-              onClick={() => { setLeftTab("saved"); }}
+              onClick={saveCurrentDesign}
               className="flex items-center gap-2 px-4 h-9 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shrink-0 shadow-md hover:shadow-lg">
-              <Bookmark className="w-4 h-4" /> Save
+              <Bookmark className="w-4 h-4" /> Save to Cloud
             </button>
           </div>
         </header>
 
         {/* Stage */}
         <div ref={stageHostRef} className="flex-1 min-h-0 overflow-hidden flex items-center justify-center py-2 px-4"
-          style={{ backgroundImage: "radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px)", backgroundSize: "24px 24px", backgroundColor: "#f1f5f9" }}>
+          style={{ backgroundColor: "#ffffff" }}>
           <div className="relative shrink-0"
             style={{ width: CANVAS_W * stageScale, height: CANVAS_H * stageScale }}>
           <div className="relative shrink-0"
@@ -2075,11 +2075,11 @@ export default function ProfileStudioProfessional() {
                         setSavedDesigns((prev) => prev.map((d) => ({ ...d, isActive: d.id === current.id })));
                         if (isCompanyWorkspace) {
                           const appliedProfiles = await applyDesignToCompanyCustomers(current.id);
-                          toast.success(`"${current.name}" saved and applied to ${appliedProfiles} customer profiles.`);
+                          toast.success(`"${current.name}" saved and applied to ${appliedProfiles} customer profiles.`, { duration: 2000 });
                         } else {
-                          toast.success(`"${current.name}" saved & live!`);
+                          toast.success(`"${current.name}" saved & live!`, { duration: 2000 });
                         }
-                      } catch { toast.error("Failed to save."); }
+                      } catch { toast.error("Failed to save.", { duration: 2000 }); }
                     } else {
                       const name = saveNameInput.trim() || `Design ${savedDesigns.length + 1}`;
                       try {
@@ -2096,11 +2096,11 @@ export default function ProfileStudioProfessional() {
                         setSavedDesigns((prev) => prev.map((d) => ({ ...d, isActive: d.id === saved.id })));
                         if (isCompanyWorkspace) {
                           const appliedProfiles = await applyDesignToCompanyCustomers(saved.id);
-                          toast.success(`"${name}" saved and applied to ${appliedProfiles} customer profiles.`);
+                          toast.success(`"${name}" saved and applied to ${appliedProfiles} customer profiles.`, { duration: 2000 });
                         } else {
-                          toast.success(`"${name}" saved & live!`);
+                          toast.success(`"${name}" saved & live!`, { duration: 2000 });
                         }
-                      } catch { toast.error("Failed to save design."); }
+                      } catch { toast.error("Failed to save design.", { duration: 2000 }); }
                     }
                   }}
                   className="w-full py-2.5 rounded-lg bg-white text-slate-900 text-xs font-semibold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5">
@@ -2426,7 +2426,7 @@ export default function ProfileStudioProfessional() {
                             setElements((prev) => [...prev, el]);
                             setSelectedId(el.id);
                             setMobileLeftOpen(false);
-                            toast.success("Photo added!");
+                            toast.success("Photo added!", { duration: 2000 });
                           }}>
                           <img src={p.thumb} alt={p.author} className="w-full h-20 object-cover" />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

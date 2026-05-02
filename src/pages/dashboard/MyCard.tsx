@@ -13,7 +13,7 @@ const MyCard = () => {
   const copyLink = async (url: string, key: string) => {
     await navigator.clipboard.writeText(url);
     setCopiedKey(key);
-    toast.success("Copied to clipboard");
+    toast.success("Copied to clipboard", { duration: 2000 });
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
@@ -27,7 +27,7 @@ const MyCard = () => {
       setSlug(response.profile?.public_slug || "user");
       setCard(response.card || null);
     };
-    load().catch(() => toast.error("Failed to load card"));
+    load().catch(() => toast.error("Failed to load card", { duration: 2000 }));
   }, []);
 
   const profileUrl = `${window.location.origin}/u/${slug}`;

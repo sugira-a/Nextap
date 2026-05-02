@@ -4,7 +4,7 @@ import { Phone, Mail, Globe, MessageCircle, Linkedin, Twitter, Instagram, Downlo
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, getCachedProfile, setCachedProfile } from "@/lib/api";
 
 // ── Active Design (canvas) types ──────────────────────────────────────────────
 type CanvasElement = {
@@ -267,17 +267,46 @@ const PublicProfile = () => {
     const load = async () => {
       if (!username) return;
 
+      // Try to get from cache first for instant loading
+      const cached = getCachedProfile(`profile-${username}`);
+      if (cached) {
+        setProfile(cached.profile);
+        setCompany(cached.company || null);
+        setDisplayName(cached.displayName);
+        setActiveDesign(cached.design);
+      }
+
       try {
-        const [profileRes, designRes] = await Promise.allSettled([
-          apiRequest<PublicProfileResponse>(`/api/profile/${username}`),
-          apiRequest<{ design: ActiveDesign }>(`/api/designs/public/${username}`),
+        // Load fresh data in background
+        const [profileRes, designRes] = await Promise.all([
+          apiRequest<PublicProfileResponse>(`/api/profile/${username}`).catch(() => null),
+          apiRequest<{ design: ActiveDesign }>(`/api/designs/public/${username}`).catch(() => null),
         ]);
 
-        if (profileRes.status === "fulfilled") {
-          setProfile(profileRes.value.profile);
-          setCompany(profileRes.value.company || null);
-          setDisplayName(profileRes.value.user ? profileRes.value.user.first_name.trim().replace(/\b\w/g, (c: string) => c.toUpperCase()) : username.replace(/[-_]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()));
-          // Lazy-load heavy image fields after the profile renders
+        if (profileRes?.profile) {
+          const displayNameComputed = profileRes.user ? profileRes.user.first_name.trim().replace(/\b\w/g, (c: string) => c.toUpperCase()) : username.replace(/[-_]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+          
+          setProfile(profileRes.profile);
+          setCompany(profileRes.company || null);
+          setDisplayName(displayNameComputed);
+          
+          // Cache the profile data
+          setCachedProfile(`profile-${username}`, {
+            profile: profileRes.profile,
+            company: profileRes.company,
+            displayName: displayNameComputed,
+            design: designRes?.design || null,
+          });
+        } else if (!cached) {
+          toast.error("Profile not found", { duration: 2000 });
+        }
+
+        if (designRes?.design) {
+          setActiveDesign(designRes.design);
+        }
+
+        // Lazy-load images only if profile loaded successfully
+        if (profileRes?.profile) {
           apiRequest<{ photo_url: string | null; background_image_url: string | null; body_background_image_url: string | null }>(`/api/profile/${username}/images`)
             .then((imgs) => {
               setProfile((prev) => prev ? {
@@ -288,15 +317,12 @@ const PublicProfile = () => {
               } : prev);
             })
             .catch(() => undefined);
-        } else {
-          toast.error("Profile not found");
         }
-
-        if (designRes.status === "fulfilled" && designRes.value.design) {
-          setActiveDesign(designRes.value.design);
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+        if (!cached) {
+          toast.error("Profile not found", { duration: 2000 });
         }
-      } catch {
-        toast.error("Profile not found");
       }
     };
 
@@ -360,12 +386,12 @@ const PublicProfile = () => {
     a.download = `${displayName.replace(/\s/g, "_")}.vcf`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Contact downloaded");
+    toast.success("Contact downloaded", { duration: 2000 });
   };
 
   const handleShareContact = async () => {
     if (!shareForm.name || (!shareForm.phone && !shareForm.email)) {
-      toast.error("Name and phone or email are required.");
+      toast.error("Name and phone or email are required.", { duration: 2000 });
       return;
     }
     try {
@@ -373,10 +399,10 @@ const PublicProfile = () => {
         method: "POST",
         body: JSON.stringify(shareForm),
       });
-      toast.success(`Your contact was sent to ${displayName}!`);
+      toast.success(`Your contact was sent to ${displayName}!`, { duration: 2000 });
       setShareSubmitted(true);
     } catch {
-      toast.error("Failed to send contact. Please try again.");
+      toast.error("Failed to send contact. Please try again.", { duration: 2000 });
     }
   };
 
@@ -385,7 +411,7 @@ const PublicProfile = () => {
       await navigator.share({ title: displayName, url: window.location.href });
     } catch {
       navigator.clipboard.writeText(window.location.href);
-      toast.success("Link copied to clipboard");
+      toast.success("Link copied to clipboard", { duration: 2000 });
     }
   };
 

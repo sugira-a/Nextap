@@ -8,6 +8,7 @@ import PhoneMockup from "@/components/PhoneMockup";
 import MiniProfileCard from "@/components/MiniProfileCard";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiRequest } from "@/lib/api";
 import {
   User, Palette, Image as ImageIcon, Sparkles, Save, RotateCcw,
   Upload, Plus, Trash2, Link2, Mail, Phone, MessageCircle, Globe,
@@ -77,15 +78,42 @@ const ProfileStudioRedesign = () => {
 
   const handleSave = async () => {
     try {
-      toast.success("Profile updated successfully");
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        toast.error("Authentication required", { duration: 2000 });
+        return;
+      }
+
+      await apiRequest("/api/profile/me/update", {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: profile.name,
+          title: profile.title,
+          bio: profile.bio,
+          location: profile.location,
+          email_public: profile.email,
+          phone: profile.phone,
+          whatsapp: profile.whatsapp,
+          website: profile.website,
+          linkedin_url: profile.linkedin,
+          twitter_url: profile.twitter,
+          instagram_url: profile.instagram,
+          cover_color: profile.coverColor,
+          button_style: profile.buttonStyle,
+          company_name: profile.company,
+        }),
+      });
+
+      toast.success("Profile saved successfully", { duration: 2000 });
       setHasChanges(false);
     } catch (error) {
-      toast.error("Failed to save profile");
+      toast.error("Failed to save profile", { duration: 2000 });
     }
   };
 
   const handleReset = () => {
-    toast.success("Changes discarded");
+    toast.success("Changes discarded", { duration: 2000 });
     setHasChanges(false);
   };
 
@@ -95,7 +123,7 @@ const ProfileStudioRedesign = () => {
       setProfile((prev) => ({ ...prev, coverColor: tmpl.bg }));
       setTemplate(templateId);
       setHasChanges(true);
-      toast.success(`${tmpl.name} template applied`);
+      toast.success(`${tmpl.name} template applied`, { duration: 2000 });
     }
   };
 

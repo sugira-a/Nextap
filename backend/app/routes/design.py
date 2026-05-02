@@ -98,6 +98,7 @@ def list_designs():
         CardDesign.query
         .filter_by(profile_id=profile.id)
         .order_by(CardDesign.created_at.desc())
+        .limit(50)
         .all()
     )
     return {'designs': [d.to_dict() for d in designs]}, 200
@@ -106,26 +107,34 @@ def list_designs():
 @bp.route('', methods=['POST'])
 def create_design():
     """Save a new design."""
+    import sys
     user, profile, err = _auth_profile()
     if err:
         return err
 
-    data = request.get_json(silent=True) or {}
-    design = CardDesign(
-        profile_id=profile.id,
-        name=(data.get('name') or '').strip() or 'My Design',
-        elements_json=json.dumps(data.get('elements', [])),
-        bg_json=json.dumps(data.get('bg', {})),
-        template_id=data.get('template_id'),
-    )
-    db.session.add(design)
-    db.session.commit()
-    return {'design': design.to_dict()}, 201
+    try:
+        data = request.get_json(silent=True) or {}
+        design = CardDesign(
+            profile_id=profile.id,
+            name=(data.get('name') or '').strip() or 'My Design',
+            elements_json=json.dumps(data.get('elements', [])),
+            bg_json=json.dumps(data.get('bg', {})),
+            template_id=data.get('template_id'),
+        )
+        db.session.add(design)
+        db.session.commit()
+        print(f"[DEBUG] Design {design.id} created successfully for profile {profile.id}", file=sys.stderr)
+        return {'design': design.to_dict()}, 201
+    except Exception as e:
+        db.session.rollback()
+        print(f"[ERROR] Failed to create design: {str(e)}", file=sys.stderr)
+        return {'error': f'Failed to save design: {str(e)}'}, 500
 
 
 @bp.route('/<design_id>', methods=['PUT'])
 def update_design(design_id):
     """Update an existing design."""
+    import sys
     user, profile, err = _auth_profile()
     if err:
         return err
@@ -134,18 +143,24 @@ def update_design(design_id):
     if not design:
         return {'error': 'Design not found'}, 404
 
-    data = request.get_json(silent=True) or {}
-    if 'name' in data:
-        design.name = (data['name'] or '').strip() or design.name
-    if 'elements' in data:
-        design.elements_json = json.dumps(data['elements'])
-    if 'bg' in data:
-        design.bg_json = json.dumps(data['bg'])
-    if 'template_id' in data:
-        design.template_id = data['template_id']
+    try:
+        data = request.get_json(silent=True) or {}
+        if 'name' in data:
+            design.name = (data['name'] or '').strip() or design.name
+        if 'elements' in data:
+            design.elements_json = json.dumps(data['elements'])
+        if 'bg' in data:
+            design.bg_json = json.dumps(data['bg'])
+        if 'template_id' in data:
+            design.template_id = data['template_id']
 
-    db.session.commit()
-    return {'design': design.to_dict()}, 200
+        db.session.commit()
+        print(f"[DEBUG] Design {design_id} updated successfully", file=sys.stderr)
+        return {'design': design.to_dict()}, 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"[ERROR] Failed to update design {design_id}: {str(e)}", file=sys.stderr)
+        return {'error': f'Failed to update design: {str(e)}'}, 500
 
 
 @bp.route('/<design_id>', methods=['DELETE'])

@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiRequest } from "@/lib/api";
 import {
   Save, RotateCcw, Phone, MessageCircle, Mail, Smartphone, Monitor, 
   CreditCard, Eye, Palette, User, Link2, Sparkles, Upload, Plus, 
@@ -234,17 +235,41 @@ const ProfileStudioCreative = () => {
 
   const handleSave = async () => {
     try {
-      toast.success("Profile saved successfully!");
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        toast.error("Authentication required", { duration: 2000 });
+        return;
+      }
+
+      await apiRequest("/api/profile/me/update", {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: profile.name,
+          title: profile.title,
+          bio: profile.bio,
+          email_public: profile.email,
+          phone: profile.phone,
+          whatsapp: profile.whatsapp,
+          website: profile.website,
+          linkedin_url: profile.linkedin,
+          twitter_url: profile.twitter,
+          instagram_url: profile.instagram,
+          company_name: profile.company,
+        }),
+      });
+
+      toast.success("Profile saved successfully!", { duration: 2000 });
       setHasChanges(false);
     } catch (error) {
-      toast.error("Failed to save profile");
+      toast.error("Failed to save profile", { duration: 2000 });
     }
   };
 
   const handleReset = () => {
     setProfile(defaultProfile);
     setHasChanges(false);
-    toast.success("Changes discarded");
+    toast.success("Changes discarded", { duration: 2000 });
   };
 
   return (

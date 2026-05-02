@@ -201,19 +201,23 @@ def get_public_profile(slug):
     if not profile:
         return {'error': 'Profile not found'}, 404
     
-    # Track view event when a related card exists
+    # Track view event non-blocking (don't block response on analytics)
     if profile.user and profile.user.cards:
-        event = AnalyticsEvent(
-            profile_id=profile.id,
-            user_id=profile.user_id,
-            card_id=profile.user.cards[0].id,
-            event_type='profile_view',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent', ''),
-            referrer=request.referrer
-        )
-        db.session.add(event)
-        db.session.commit()
+        try:
+            event = AnalyticsEvent(
+                profile_id=profile.id,
+                user_id=profile.user_id,
+                card_id=profile.user.cards[0].id,
+                event_type='profile_view',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent', ''),
+                referrer=request.referrer
+            )
+            db.session.add(event)
+            db.session.commit()
+        except Exception:
+            # Silently fail on analytics errors - don't block profile display
+            db.session.rollback()
 
     profile_data = profile.to_dict(include_sensitive=False)
     # Strip large base64 blobs from the main response — load them lazily via /images endpoint

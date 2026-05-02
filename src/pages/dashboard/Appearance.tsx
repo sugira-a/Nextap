@@ -28,7 +28,7 @@ const Appearance = () => {
       setFontStyle(response.profile?.font_style || "Modern");
     };
 
-    load().catch(() => toast.error("Failed to load appearance"));
+    load().catch(() => toast.error("Failed to load appearance", { duration: 2000 }));
   }, []);
 
   const saveAppearance = async () => {
@@ -50,9 +50,9 @@ const Appearance = () => {
         }),
       });
 
-      toast.success("Appearance saved");
+      toast.success("Appearance saved", { duration: 2000 });
     } catch {
-      toast.error("Failed to save appearance");
+      toast.error("Failed to save appearance", { duration: 2000 });
     } finally {
       setSaving(false);
     }
@@ -73,7 +73,7 @@ const Appearance = () => {
               setCoverColor(theme.cover);
               setButtonStyle(theme.button);
               setFontStyle(theme.font);
-              toast.success(`${theme.name} theme selected`);
+              toast.success(`${theme.name} theme selected`, { duration: 2000 });
             }}
             className={`border-2 rounded-xl p-6 text-center hover:shadow-md transition-shadow ${
               coverColor === theme.cover ? "border-accent" : "border-border"
