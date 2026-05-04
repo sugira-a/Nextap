@@ -1374,8 +1374,8 @@ export default function ProfileStudioProfessional() {
 
       {/* ── Left Panel — desktop sidebar + mobile drawer ───────── */}
       {/* Desktop */}
-      <aside className="hidden md:flex h-full min-h-0 flex-col w-[240px] shrink-0 border-r border-slate-200 bg-white overflow-hidden shadow-sm">
-        <div className="flex border-b border-slate-200">
+      <aside className="hidden md:flex h-full min-h-0 flex-col w-[240px] shrink-0 border-r border-slate-700 bg-black overflow-hidden shadow-sm">
+        <div className="flex border-b border-slate-700">
           {["templates", "elements", "photos", "profile", "saved"].map((tab) => (
             <button
               key={tab}
@@ -1394,7 +1394,7 @@ export default function ProfileStudioProfessional() {
                 : tab === "profile" ? <Briefcase className="w-5 h-5 mx-auto" />
                 : <Bookmark className="w-5 h-5 mx-auto" />}
               {tab === "saved" && savedDesigns.length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-indigo-600 text-[8px] font-bold text-white flex items-center justify-center">
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-slate-600 text-[8px] font-bold text-white flex items-center justify-center">
                   {savedDesigns.length}
                 </span>
               )}
@@ -1407,7 +1407,7 @@ export default function ProfileStudioProfessional() {
           {/* TEMPLATES */}
           {leftTab === "templates" && (
             <>
-              <div className="flex gap-1.5 p-1.5 bg-slate-100 rounded-lg mb-3">
+              <div className="flex gap-1.5 p-1.5 bg-slate-800 rounded-lg mb-3">
                 {["All", "Dark", "Light"].map((cat) => (
                   <CategoryBadge key={cat} label={cat} active={categoryFilter === cat} onClick={() => setCategoryFilter(cat)} />
                 ))}
@@ -1416,16 +1416,16 @@ export default function ProfileStudioProfessional() {
                 {filteredTemplates.map((tpl) => (
                   <button key={tpl.id}
                     onClick={() => { setElements(applyTemplate(tpl)); setBg(tpl.bg); setActiveTemplate(tpl.id); setSelectedId(null); }}
-                    className={`w-full rounded-lg overflow-hidden border transition-all flex items-center px-2 py-2 gap-2 ${activeTemplate === tpl.id ? "border-indigo-300 bg-indigo-50" : "border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100"}`}>
-                    <div className="w-8 h-8 rounded bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 uppercase">
+                    className={`w-full rounded-lg overflow-hidden border transition-all flex items-center px-2 py-2 gap-2 ${activeTemplate === tpl.id ? "border-white/20 bg-black" : "border-white/10 hover:border-white/20 bg-zinc-950 hover:bg-black"}`}>
+                    <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-xs font-bold text-white uppercase">
                       {tpl.name[0]}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[10px] font-bold text-slate-900 truncate">{tpl.name}</div>
-                      <div className="text-[8px] text-slate-500 truncate">{tpl.category}</div>
+                      <div className="text-[10px] font-bold text-white truncate">{tpl.name}</div>
+                      <div className="text-[8px] text-white/60 truncate">{tpl.category}</div>
                     </div>
                     {activeTemplate === tpl.id && (
-                      <div className="w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center">
+                      <div className="w-4 h-4 bg-slate-600 rounded-full flex items-center justify-center">
                         <Check className="w-2.5 h-2.5 text-white" />
                       </div>
                     )}
@@ -1450,8 +1450,8 @@ export default function ProfileStudioProfessional() {
                     { type: "shape" as ElementType,   icon: <Maximize2 className="w-4 h-4" />, label: "Shape" },
                   ]).map(({ type, icon, label }) => (
                     <button key={type} onClick={() => addElement(type)}
-                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
-                      <span className="text-indigo-600">{icon}</span>
+                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 transition-colors">
+                      <span className="text-slate-500">{icon}</span>
                       <span className="text-[8px] text-slate-600 font-medium">{label}</span>
                     </button>
                   ))}
@@ -1477,7 +1477,7 @@ export default function ProfileStudioProfessional() {
                         setElements((prev) => [...prev, el]);
                         setSelectedId(el.id);
                       }}
-                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
+                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 transition-colors">
                       <div className="w-8 h-5 flex items-center justify-center">
                         <div style={{ width: Math.min(28, w / 6), height: Math.min(20, h / 6), borderRadius: Math.min(radius, 8), background: shapeBg.replace(/[\d.]+\)$/, "1)") }} />
                       </div>
@@ -1506,7 +1506,7 @@ export default function ProfileStudioProfessional() {
                         setElements((prev) => [...prev, el]);
                         setSelectedId(el.id);
                       }}
-                      className="flex items-center justify-center p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors">
+                      className="flex items-center justify-center p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 transition-colors">
                       <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: color + "18" }}>
                         <Icon className="w-3.5 h-3.5" style={{ color }} />
                       </div>
@@ -1522,7 +1522,7 @@ export default function ProfileStudioProfessional() {
             <div className="space-y-3">
               <div className="space-y-2">
                 <button onClick={() => photosUploadRef.current?.click()}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/10 border border-white/[0.08] text-slate-300 text-xs font-medium transition-colors">
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition-colors">
                   <Upload className="w-3.5 h-3.5" /> Upload Image
                 </button>
                 <input ref={photosUploadRef} type="file" accept="image/*" className="hidden" onChange={handlePhotosUpload} />
@@ -1531,9 +1531,9 @@ export default function ProfileStudioProfessional() {
                 <input value={photoQuery} onChange={(e) => setPhotoQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && searchPhotos()}
                   placeholder="Search photos…"
-                  className="flex-1 h-9 text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 text-slate-900 placeholder:text-slate-500 outline-none focus:border-slate-400 focus:bg-white" />
+                  className="flex-1 h-9 text-xs bg-black border border-white/20 rounded-lg px-3 text-white placeholder:text-white/50 outline-none focus:border-white/40 focus:bg-black" />
                 <button onClick={searchPhotos} disabled={photoLoading}
-                  className="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-40">
+                  className="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors disabled:opacity-40">
                   {photoLoading ? <div className="w-3 h-3 border-2 border-slate-400 border-t-slate-600 rounded-full animate-spin" /> : <Search className="w-4 h-4" />}
                 </button>
               </div>
@@ -1561,17 +1561,17 @@ export default function ProfileStudioProfessional() {
             <div className="space-y-3">
               {/* Save current design */}
               <div className="space-y-2">
-                <p className="text-[9px] text-slate-700 uppercase tracking-widest font-semibold">Save Current Design</p>
+                <p className="text-[9px] text-white/60 uppercase tracking-widest font-semibold">Save Current Design</p>
                 <input
                   value={saveNameInput}
                   onChange={(e) => setSaveNameInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && saveCurrentDesign()}
                   placeholder={`Design ${savedDesigns.length + 1}`}
-                  className="w-full h-9 text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 text-slate-900 placeholder:text-slate-500 outline-none focus:border-slate-400 focus:bg-white"
+                  className="w-full h-9 text-xs bg-black border border-white/20 rounded-lg px-3 text-white placeholder:text-white/50 outline-none focus:border-white/40 focus:bg-black"
                 />
                 <button
                   onClick={saveCurrentDesign}
-                  className="w-full py-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5">
+                  className="w-full py-2.5 rounded-lg bg-white text-black text-xs font-semibold hover:bg-white/90 transition-colors flex items-center justify-center gap-1.5">
                   <Bookmark className="w-3.5 h-3.5" /> Save to Cloud
                 </button>
               </div>
@@ -1589,46 +1589,46 @@ export default function ProfileStudioProfessional() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-[9px] text-slate-700 uppercase tracking-widest font-semibold">{savedDesigns.length} Cloud Designs</p>
+                <p className="text-[9px] text-white/60 uppercase tracking-widest font-semibold">{savedDesigns.length} Cloud Designs</p>
                   {savedDesigns.map((design) => {
                     const isActive = design.id === activeDesignId;
                     const isEditing = editingDesignId === design.id;
                     return (
-                      <div key={design.id} className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isActive ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-slate-50 hover:bg-slate-100"}`}>
+                      <div key={design.id} className={`rounded-xl border p-3 space-y-2.5 transition-colors ${isActive ? "border-white/20 bg-black" : "border-white/10 bg-zinc-950 hover:bg-black"}`}>
                         <div className="flex items-start justify-between gap-1.5">
                           <div className="min-w-0 flex-1">
                             {isEditing ? (
                               <input
                                 autoFocus
                                 defaultValue={design.name}
-                                className="w-full h-6 text-xs bg-white border border-slate-300 rounded px-2 text-slate-900 outline-none focus:border-indigo-400"
+                                className="w-full h-6 text-xs bg-black border border-white/20 rounded px-2 text-white outline-none focus:border-white/40"
                                 onBlur={(e) => { if (e.target.value.trim()) renameDesign(design.id, e.target.value.trim()); else setEditingDesignId(null); }}
                                 onKeyDown={(e) => { if (e.key === "Enter" && e.currentTarget.value.trim()) renameDesign(design.id, e.currentTarget.value.trim()); if (e.key === "Escape") setEditingDesignId(null); }}
                               />
                             ) : (
-                              <p className="text-xs font-semibold text-slate-900 truncate cursor-pointer hover:text-slate-700" onClick={() => setEditingDesignId(design.id)} title="Click to rename">{design.name}</p>
+                              <p className="text-xs font-semibold text-white truncate cursor-pointer hover:text-white/80" onClick={() => setEditingDesignId(design.id)} title="Click to rename">{design.name}</p>
                             )}
-                            <p className="text-[9px] text-slate-600 mt-0.5">{new Date(design.timestamp).toLocaleDateString()}</p>
+                            <p className="text-[9px] text-white/60 mt-0.5">{new Date(design.timestamp).toLocaleDateString()}</p>
                           </div>
                           {isActive && (
-                            <span className="shrink-0 flex items-center gap-0.5 text-[8px] font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full border border-indigo-200">
+                            <span className="shrink-0 flex items-center gap-0.5 text-[8px] font-bold text-white bg-white/10 px-2 py-1 rounded-full border border-white/20">
                               <BookmarkCheck className="w-2.5 h-2.5" /> Active
                             </span>
                           )}
                         </div>
                         <div className="flex gap-1.5">
                           <button onClick={() => loadDesign(design)}
-                            className="flex-1 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-medium text-slate-700 hover:text-slate-900 transition-colors">
+                            className="flex-1 py-1.5 rounded-lg bg-white text-black text-[10px] font-medium hover:bg-white/90 transition-colors">
                             Load
                           </button>
                           <button onClick={() => markDesignActive(design.id)}
                             title={isActive ? "Unmark as active" : "Set as active card layout"}
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isActive ? "bg-indigo-200 text-indigo-600" : "bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900"}`}>
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isActive ? "bg-white/20 text-white" : "bg-white/10 hover:bg-white/20 text-white/60 hover:text-white"}` }>
                             <BookmarkCheck className="w-3.5 h-3.5" />
                           </button>
                           <button onClick={() => setConfirmDelete({ id: design.id, name: design.name })}
                             disabled={deletingDesignId === design.id}
-                            className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-600 flex items-center justify-center transition-colors disabled:opacity-50">
+                            className="w-7 h-7 rounded-lg bg-white/10 hover:bg-red-500/20 text-white/60 hover:text-red-400 flex items-center justify-center transition-colors disabled:opacity-50">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -1685,7 +1685,7 @@ export default function ProfileStudioProfessional() {
             {/* Preview */}
             <button
               onClick={() => setPreviewMode((p) => !p)}
-              className={`flex items-center gap-2 px-3 h-9 rounded-lg text-sm font-medium transition-colors shrink-0 ${previewMode ? "bg-indigo-50 text-indigo-600" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}>
+              className={`flex items-center gap-2 px-3 h-9 rounded-lg text-sm font-medium transition-colors shrink-0 ${previewMode ? "bg-slate-800 text-slate-200" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}>
               <Eye className="w-4 h-4" />
               <span>{previewMode ? "Editing" : "Preview"}</span>
             </button>
@@ -1693,7 +1693,7 @@ export default function ProfileStudioProfessional() {
             {/* Save */}
             <button
               onClick={saveCurrentDesign}
-              className="flex items-center gap-2 px-4 h-9 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shrink-0 shadow-md hover:shadow-lg">
+              className="flex items-center gap-2 px-4 h-9 rounded-lg text-sm font-semibold bg-slate-700 text-white hover:bg-slate-600 transition-colors shrink-0 shadow-md hover:shadow-lg">
               <Bookmark className="w-4 h-4" /> Save to Cloud
             </button>
           </div>
@@ -1776,17 +1776,17 @@ export default function ProfileStudioProfessional() {
             <span className="text-[8px] text-slate-600 font-medium">Add</span>
           </button>
           <button onClick={() => { setMobileRightOpen(true); setMobileLeftOpen(false); }}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl transition-colors ${selectedElement ? "bg-indigo-50 border border-indigo-200" : "bg-slate-50"}`}>
-            <Pencil className={`w-4 h-4 ${selectedElement ? "text-indigo-600" : "text-slate-600"}`} />
-            <span className={`text-[8px] font-medium ${selectedElement ? "text-indigo-600" : "text-slate-600"}`}>Edit</span>
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl transition-colors ${selectedElement ? "bg-slate-800 border border-slate-600" : "bg-slate-50"}`}>
+            <Pencil className={`w-4 h-4 ${selectedElement ? "text-slate-200" : "text-slate-600"}`} />
+            <span className={`text-[8px] font-medium ${selectedElement ? "text-slate-200" : "text-slate-600"}`}>Edit</span>
           </button>
           <button onClick={() => setPreviewMode((p) => !p)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl transition-colors ${previewMode ? "bg-indigo-50" : "bg-slate-50 hover:bg-slate-100"}`}>
-            <Eye className={`w-4 h-4 ${previewMode ? "text-indigo-600" : "text-slate-600"}`} />
-            <span className={`text-[8px] font-medium ${previewMode ? "text-indigo-600" : "text-slate-600"}`}>{previewMode ? "Edit" : "View"}</span>
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl transition-colors ${previewMode ? "bg-slate-800" : "bg-slate-50 hover:bg-slate-100"}`}>
+            <Eye className={`w-4 h-4 ${previewMode ? "text-slate-200" : "text-slate-600"}`} />
+            <span className={`text-[8px] font-medium ${previewMode ? "text-slate-200" : "text-slate-600"}`}>{previewMode ? "Edit" : "View"}</span>
           </button>
           <button onClick={() => { confirmDiscardChanges(() => { setMobileLeftOpen(true); setLeftTab("saved"); setMobileRightOpen(false); }); }}
-            className="flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 transition-colors">
+            className="flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 transition-colors">
             <Save className="w-4 h-4 text-white" />
             <span className="text-[8px] text-white font-medium">Saved</span>
           </button>
@@ -1794,14 +1794,14 @@ export default function ProfileStudioProfessional() {
       </main>
 
       {/* ── Right Inspector — desktop only ──────────────────────── */}
-      <aside className="hidden md:flex h-full min-h-0 w-[280px] shrink-0 border-l border-slate-200 bg-white flex-col overflow-hidden shadow-sm">
-        <div className="px-4 py-3.5 border-b border-slate-200 flex items-center justify-between">
+      <aside className="hidden md:flex h-full min-h-0 w-[280px] shrink-0 border-l border-slate-700 bg-black flex-col overflow-hidden shadow-sm">
+        <div className="px-4 py-3.5 border-b border-slate-700 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-900">Inspector</p>
-            <p className="text-[11px] text-slate-600 mt-0.5">{selectedElement ? `${selectedElement.type}` : "Select element"}</p>
+            <p className="text-sm font-semibold text-white">Inspector</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">{selectedElement ? `${selectedElement.type}` : "Select element"}</p>
           </div>
           {selectedElement && (
-            <button onClick={duplicateSelected} title="Duplicate" className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors">
+            <button onClick={duplicateSelected} title="Duplicate" className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-colors">
               <Copy className="w-4 h-4" />
             </button>
           )}
@@ -1831,19 +1831,19 @@ export default function ProfileStudioProfessional() {
                   <Label>Typography</Label>
                   <div className="space-y-2.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-slate-500 w-12 shrink-0">Size</span>
+                      <span className="text-[9px] text-slate-400 w-12 shrink-0">Size</span>
                       <div className="flex items-center gap-1 flex-1">
-                        <button className="w-6 h-6 rounded bg-white/[0.06] hover:bg-white/10 flex items-center justify-center"
+                        <button className="w-6 h-6 rounded bg-white/[0.06] hover:bg-white/10 flex items-center justify-center text-white"
                           onClick={() => updateElement(selectedElement.id, { fontSize: Math.max(8, selectedElement.fontSize - 1) })}><Minus className="w-3 h-3" /></button>
                         <span className="text-xs text-white text-center flex-1">{selectedElement.fontSize}px</span>
-                        <button className="w-6 h-6 rounded bg-white/[0.06] hover:bg-white/10 flex items-center justify-center"
+                        <button className="w-6 h-6 rounded bg-white/[0.06] hover:bg-white/10 flex items-center justify-center text-white"
                           onClick={() => updateElement(selectedElement.id, { fontSize: selectedElement.fontSize + 1 })}><Plus className="w-3 h-3" /></button>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-slate-500 w-12 shrink-0">Weight</span>
+                      <span className="text-[9px] text-slate-400 w-12 shrink-0">Weight</span>
                       <select value={selectedElement.fontWeight} onChange={(e) => updateElement(selectedElement.id, { fontWeight: Number(e.target.value) as any })}
-                        className="w-full h-8 text-xs rounded bg-slate-50 border border-slate-200 text-slate-900 px-2 outline-none focus:border-indigo-400 focus:bg-white">
+                        className="w-full h-8 text-xs rounded bg-slate-800 border border-slate-700 text-white px-2 outline-none focus:border-indigo-400 focus:bg-slate-700">
                         {[400,500,600,700,800,900].map((w) => <option key={w} value={w} className="bg-white">{w}</option>)}
                       </select>
                     </div>
@@ -1854,7 +1854,7 @@ export default function ProfileStudioProfessional() {
                       <span className="text-[9px] text-slate-600 w-4">{selectedElement.letterSpacing}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-slate-500 w-12 shrink-0">Align</span>
+                      <span className="text-[9px] text-slate-400 w-12 shrink-0">Align</span>
                       <div className="flex gap-1">
                         {(["left","center","right"] as const).map((a) => {
                           const Icon = a === "left" ? AlignLeft : a === "center" ? AlignCenter : AlignRight;
@@ -1868,7 +1868,7 @@ export default function ProfileStudioProfessional() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-slate-500 w-12 shrink-0">Italic</span>
+                      <span className="text-[9px] text-slate-400 w-12 shrink-0">Italic</span>
                       <button onClick={() => updateElement(selectedElement.id, { italic: !selectedElement.italic })}
                         className={`w-7 h-7 rounded flex items-center justify-center ${selectedElement.italic ? "bg-white text-slate-900" : "bg-white/[0.06] text-slate-400"}`}>
                         <ItalicIcon className="w-3.5 h-3.5" />
@@ -1884,16 +1884,16 @@ export default function ProfileStudioProfessional() {
                 <div className="space-y-2.5">
                   {!["image","divider","shape"].includes(selectedElement.type) && (
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-slate-500 w-10 shrink-0">Text</span>
+                      <span className="text-[9px] text-slate-400 w-10 shrink-0">Text</span>
                       <input type="color" value={selectedElement.color} onChange={(e) => updateElement(selectedElement.id, { color: e.target.value })} className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent shrink-0" />
-                      <span className="text-[10px] text-slate-500 font-mono">{selectedElement.color}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{selectedElement.color}</span>
                     </div>
                   )}
                   {["button","shape","divider","icon_row"].includes(selectedElement.type) && (
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-slate-500 w-10 shrink-0">Fill</span>
+                      <span className="text-[9px] text-slate-400 w-10 shrink-0">Fill</span>
                       <input type="color" value={selectedElement.background === "transparent" ? "#000000" : selectedElement.background} onChange={(e) => updateElement(selectedElement.id, { background: e.target.value })} className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent shrink-0" />
-                      <span className="text-[10px] text-slate-500 font-mono truncate">{selectedElement.background}</span>
+                      <span className="text-[10px] text-slate-400 font-mono truncate">{selectedElement.background}</span>
                     </div>
                   )}
                   <div className="flex flex-wrap gap-1.5">
