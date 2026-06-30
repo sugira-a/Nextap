@@ -294,17 +294,12 @@ const EditProfile = () => {
 
   useEffect(() => {
     const loadProfile = async () => {
-      const token = localStorage.getItem("access_token");
       let data: { user?: { first_name: string; last_name: string } | null; profile?: any } = {};
 
       try {
-        data = await apiRequest<{ user: { first_name: string; last_name: string }; profile: any }>("/api/auth/me", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        data = await apiRequest<{ user: { first_name: string; last_name: string }; profile: any }>("/api/auth/me");
       } catch {
-        const fallback = await apiRequest<{ profile: any }>("/api/profile/me", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const fallback = await apiRequest<{ profile: any }>("/api/profile/me");
         data = { profile: fallback.profile, user: null };
       }
 

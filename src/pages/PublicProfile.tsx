@@ -277,22 +277,31 @@ const PublicProfile = () => {
       }
 
       try {
-        // Load fresh data in background
-        const [profileRes, designRes] = await Promise.all([
+        // Load all data in parallel (including images) for better performance
+        const [profileRes, designRes, imagesRes] = await Promise.all([
           apiRequest<PublicProfileResponse>(`/api/profile/${username}`).catch(() => null),
           apiRequest<{ design: ActiveDesign }>(`/api/designs/public/${username}`).catch(() => null),
+          apiRequest<{ photo_url: string | null; background_image_url: string | null; body_background_image_url: string | null }>(`/api/profile/${username}/images`).catch(() => null),
         ]);
 
         if (profileRes?.profile) {
           const displayNameComputed = profileRes.user ? profileRes.user.first_name.trim().replace(/\b\w/g, (c: string) => c.toUpperCase()) : username.replace(/[-_]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
           
-          setProfile(profileRes.profile);
+          // Merge profile data with images
+          const profileWithImages = {
+            ...profileRes.profile,
+            photo_url: imagesRes?.photo_url ?? profileRes.profile.photo_url,
+            background_image_url: imagesRes?.background_image_url ?? profileRes.profile.background_image_url,
+            body_background_image_url: imagesRes?.body_background_image_url ?? profileRes.profile.body_background_image_url,
+          };
+          
+          setProfile(profileWithImages);
           setCompany(profileRes.company || null);
           setDisplayName(displayNameComputed);
           
-          // Cache the profile data
+          // Cache the profile data with images
           setCachedProfile(`profile-${username}`, {
-            profile: profileRes.profile,
+            profile: profileWithImages,
             company: profileRes.company,
             displayName: displayNameComputed,
             design: designRes?.design || null,
@@ -303,20 +312,6 @@ const PublicProfile = () => {
 
         if (designRes?.design) {
           setActiveDesign(designRes.design);
-        }
-
-        // Lazy-load images only if profile loaded successfully
-        if (profileRes?.profile) {
-          apiRequest<{ photo_url: string | null; background_image_url: string | null; body_background_image_url: string | null }>(`/api/profile/${username}/images`)
-            .then((imgs) => {
-              setProfile((prev) => prev ? {
-                ...prev,
-                photo_url: imgs.photo_url ?? prev.photo_url,
-                background_image_url: imgs.background_image_url ?? prev.background_image_url,
-                body_background_image_url: imgs.body_background_image_url ?? prev.body_background_image_url,
-              } : prev);
-            })
-            .catch(() => undefined);
         }
       } catch (err) {
         console.error("Failed to load profile:", err);
@@ -363,22 +358,39 @@ const PublicProfile = () => {
   }
 
   const handleSaveContact = () => {
+    // Build comprehensive vCard with all contact details
     const vcard = [
       "BEGIN:VCARD",
       "VERSION:3.0",
       `FN:${displayName}`,
+      `N:${displayName.split(" ").pop() || ""};;${displayName.split(" ").slice(0, -1).join(" ")};;`,
+      // Organization/Company
+      company?.name ? `ORG:${company.name}` : "",
       profile.title ? `TITLE:${profile.title}` : "",
+      // Phone numbers
       profile.phone ? `TEL;TYPE=CELL:${profile.phone}` : "",
-      profile.whatsapp ? `TEL;TYPE=WORK:${profile.whatsapp}` : "",
-      profile.email_public ? `EMAIL:${profile.email_public}` : "",
+      profile.whatsapp ? `TEL;TYPE=CELL:${profile.whatsapp}` : "",
+      // Email
+      profile.email_public ? `EMAIL;TYPE=INTERNET:${profile.email_public}` : "",
+      // Website/URL
       profile.website ? `URL:${profile.website.startsWith("http") ? profile.website : "https://" + profile.website}` : "",
+      // Address/Location
       profile.location ? `ADR;TYPE=WORK:;;${profile.location};;;;` : "",
+      // Photo/Avatar
+      profile.photo_url ? `PHOTO;VALUE=URI:${profile.photo_url}` : "",
+      // Bio/Note
+      profile.bio ? `NOTE:${profile.bio.replace(/\n/g, "\\n")}` : "",
+      // Social profiles
       profile.linkedin_url ? `X-SOCIALPROFILE;type=linkedin:${profile.linkedin_url}` : "",
       profile.twitter_url ? `X-SOCIALPROFILE;type=twitter:${profile.twitter_url}` : "",
       profile.instagram_url ? `X-SOCIALPROFILE;type=instagram:${profile.instagram_url}` : "",
-      profile.bio ? `NOTE:${profile.bio}` : "",
+      // Revision timestamp
+      `REV:${new Date().toISOString()}`,
+      // Unique identifier
+      `UID:${displayName.replace(/\s/g, "_")}-${Date.now()}@nextap`,
       "END:VCARD",
     ].filter(Boolean).join("\r\n");
+    
     const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -386,7 +398,7 @@ const PublicProfile = () => {
     a.download = `${displayName.replace(/\s/g, "_")}.vcf`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Contact downloaded", { duration: 2000 });
+    toast.success("Contact saved successfully! 📇", { duration: 2000 });
   };
 
   const handleShareContact = async () => {

@@ -23,27 +23,28 @@ const SettingsPage = () => {
 
   useEffect(() => {
     const load = async () => {
-      const token = localStorage.getItem("access_token");
-      const data = await apiRequest<{ user: { email: string }; profile: { public_slug: string } | null }>("/api/auth/me", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      setEmail(data.user.email);
-      setSlug(data.profile?.public_slug || "");
+      try {
+        const data = await apiRequest<{ user: { email: string }; profile: { public_slug: string } | null }>("/api/auth/me");
+        setEmail(data.user.email);
+        setSlug(data.profile?.public_slug || "");
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+        toast.error("Failed to load settings", { duration: 2000 });
+      }
     };
-    load().catch(() => toast.error("Failed to load settings", { duration: 2000 }));
+    load();
   }, []);
 
   const saveAccount = async () => {
     try {
       setSavingAccount(true);
-      const token = localStorage.getItem("access_token");
       await apiRequest("/api/profile/me/update", {
         method: "PUT",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify({ public_slug: slug }),
       });
       toast.success("Username updated", { duration: 2000 });
-    } catch {
+    } catch (error) {
+      console.error("Failed to save settings:", error);
       toast.error("Failed to save settings", { duration: 2000 });
     } finally {
       setSavingAccount(false);
@@ -61,16 +62,15 @@ const SettingsPage = () => {
     if (newPassword.length < 8) { toast.error("Password must be at least 8 characters", { duration: 2000 }); return; }
     try {
       setSavingPassword(true);
-      const token = localStorage.getItem("access_token");
       await apiRequest("/api/auth/change-password", {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
       });
       toast.success("Password changed successfully", { duration: 2000 });
       setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
       setPasswordOpen(false);
     } catch (err) {
+      console.error("Failed to change password:", err);
       toast.error(err instanceof Error ? err.message : "Failed to change password", { duration: 2000 });
     } finally {
       setSavingPassword(false);
@@ -80,15 +80,14 @@ const SettingsPage = () => {
   const deleteAccount = async () => {
     try {
       setDeleting(true);
-      const token = localStorage.getItem("access_token");
       await apiRequest("/api/auth/me", {
         method: "DELETE",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       window.location.href = "/";
-    } catch {
+    } catch (error) {
+      console.error("Failed to delete account:", error);
       toast.error("Failed to delete account", { duration: 2000 });
       setDeleting(false);
       setDeleteOpen(false);
@@ -130,12 +129,14 @@ const SettingsPage = () => {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="max-w-2xl mx-auto space-y-6 py-2"
+      className="max-w-5xl mx-auto space-y-6 py-2"
     >
       {/* Header */}
-      <div className="pb-5 border-b border-zinc-100">
-        <p className="text-[11px] uppercase tracking-widest text-zinc-400 font-semibold mb-1">Settings</p>
-        <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Account</h1>
+      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
+        <div>
+          <p className="text-[11px] uppercase tracking-widest text-zinc-400 font-semibold mb-1">Settings</p>
+          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Account</h1>
+        </div>
       </div>
 
       {/* Account Info */}

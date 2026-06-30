@@ -2,8 +2,23 @@
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import {
+  UserCircle2, ArrowLeft, Building2, CreditCard, Clock, Linkedin, Twitter, Instagram,
+} from "lucide-react";
 
 import { apiRequest, apiRequestWithFallback } from "@/lib/api";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type UserDetails = {
   user: {
@@ -27,37 +42,45 @@ type UserDetails = {
     twitter_url?: string | null;
     instagram_url?: string | null;
   } | null;
-  company?: {
-    id: string;
-    name: string;
-    slug: string;
-  } | null;
-  card?: {
-    code: string;
-    status: string;
-  } | null;
+  company?: { id: string; name: string; slug: string } | null;
+  card?: { code: string; status: string } | null;
 };
 
-type CustomerDetailsResponse = {
-  customer: UserDetails;
-};
-
+type CustomerDetailsResponse = { customer: UserDetails };
 type UserListResponse = {
   users: Array<{
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    role: string;
-    status: string;
-    created_at?: string;
-    company?: {
-      id: string;
-      name: string;
-      slug: string;
-    } | null;
+    id: string; first_name: string; last_name: string; email: string;
+    role: string; status: string; created_at?: string;
+    company?: { id: string; name: string; slug: string } | null;
   }>;
 };
+
+const inputClass =
+  "w-full border border-border/60 rounded-lg px-3 py-2 text-sm bg-background text-foreground outline-none focus:border-foreground/30 transition-colors placeholder:text-muted-foreground/50";
+
+const labelClass = "text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-1.5 block";
+
+const SummaryRow = ({
+  icon: Icon,
+  label,
+  iconColor,
+  children,
+}: {
+  icon: React.ElementType;
+  label: string;
+  iconColor?: string;
+  children: React.ReactNode;
+}) => (
+  <div className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0">
+    <span className="flex items-center gap-2.5 text-sm text-muted-foreground">
+      <span className={`flex items-center justify-center w-6 h-6 rounded-md ${iconColor ?? "bg-muted text-muted-foreground"}`}>
+        <Icon className="w-3.5 h-3.5" />
+      </span>
+      {label}
+    </span>
+    <div className="text-right">{children}</div>
+  </div>
+);
 
 const AdminUserView = () => {
   const { userId } = useParams();
@@ -66,21 +89,13 @@ const AdminUserView = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const [data, setData] = useState<UserDetails | null>(null);
   const [form, setForm] = useState({
-    first_name: "",
-    last_name: "",
-    status: "active",
-    public_slug: "",
-    title: "",
-    bio: "",
-    phone: "",
-    website: "",
-    location: "",
-    photo_url: "",
-    linkedin_url: "",
-    twitter_url: "",
-    instagram_url: "",
+    first_name: "", last_name: "", status: "active", public_slug: "",
+    title: "", bio: "", phone: "", website: "", location: "", photo_url: "",
+    linkedin_url: "", twitter_url: "", instagram_url: "",
   });
 
   const authHeaders = useMemo(() => {
@@ -90,38 +105,21 @@ const AdminUserView = () => {
 
   const load = async () => {
     if (!userId) return;
-
     try {
       setLoading(true);
       const response = await apiRequestWithFallback<UserDetails>([
-        () =>
-          apiRequest<UserDetails>(`/api/admin/users/${userId}`, {
-            headers: authHeaders,
-          }),
+        () => apiRequest<UserDetails>(`/api/admin/users/${userId}`, { headers: authHeaders }),
         async () => {
-          const customerResponse = await apiRequest<CustomerDetailsResponse>(`/api/admin/customers/${userId}`, {
-            headers: authHeaders,
-          });
-          return customerResponse.customer;
+          const r = await apiRequest<CustomerDetailsResponse>(`/api/admin/customers/${userId}`, { headers: authHeaders });
+          return r.customer;
         },
         async () => {
-          const listResponse = await apiRequest<UserListResponse>("/api/admin/users?per_page=500", {
-            headers: authHeaders,
-          });
-          const user = listResponse.users.find((candidate) => candidate.id === userId);
-          if (!user) {
-            throw new Error("User not found");
-          }
-
-          return {
-            user,
-            profile: null,
-            company: user.company || null,
-            card: null,
-          };
+          const r = await apiRequest<UserListResponse>("/api/admin/users?per_page=500", { headers: authHeaders });
+          const user = r.users.find((u) => u.id === userId);
+          if (!user) throw new Error("User not found");
+          return { user, profile: null, company: user.company || null, card: null };
         },
       ]);
-
       setData(response);
       setForm({
         first_name: response.user.first_name || "",
@@ -145,18 +143,14 @@ const AdminUserView = () => {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, [userId]);
+  useEffect(() => { load(); }, [userId]);
 
   const save = async () => {
     if (!userId) return;
-
     if (!form.first_name.trim() || !form.last_name.trim() || !form.public_slug.trim()) {
       toast.error("First name, last name, and public slug are required");
       return;
     }
-
     try {
       setSaving(true);
       await apiRequest(`/api/admin/users/${userId}`, {
@@ -178,7 +172,6 @@ const AdminUserView = () => {
           instagram_url: form.instagram_url.trim() || null,
         }),
       });
-
       toast.success("User updated");
       await load();
     } catch (error) {
@@ -190,16 +183,11 @@ const AdminUserView = () => {
 
   const remove = async () => {
     if (!userId || !data) return;
-
     const confirmed = window.confirm(`Delete user ${data.user.email}? This action cannot be undone.`);
     if (!confirmed) return;
-
     try {
       setDeleting(true);
-      await apiRequest(`/api/admin/users/${userId}`, {
-        method: "DELETE",
-        headers: authHeaders,
-      });
+      await apiRequest(`/api/admin/users/${userId}`, { method: "DELETE", headers: authHeaders });
       toast.success("User deleted");
       navigate("/admin/users");
     } catch (error) {
@@ -209,141 +197,253 @@ const AdminUserView = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-40">
-        <div className="w-5 h-5 rounded-full border-2 border-zinc-900 border-t-transparent animate-spin" />
-      </div>
-    );
-  }
+  const toggleStatus = async () => {
+    if (!userId || !data) return;
+    const nextStatus = data.user.status === "suspended" ? "active" : "suspended";
+    try {
+      setStatusUpdating(true);
+      await toast.promise(
+        apiRequest(`/api/admin/users/${userId}/status`, {
+          method: "PATCH",
+          headers: authHeaders,
+          body: JSON.stringify({ status: nextStatus }),
+        }),
+        {
+          loading: `${nextStatus === "suspended" ? "Suspending" : "Reactivating"} user…`,
+          success: nextStatus === "suspended" ? "User suspended successfully" : "User reactivated successfully",
+          error: (error) => (error instanceof Error ? error.message : "Unable to update status."),
+        },
+      );
+      await load();
+    } finally {
+      setStatusUpdating(false);
+      setStatusDialogOpen(false);
+    }
+  };
 
-  if (!data) {
-    return <div className="bg-white border border-zinc-200 rounded-2xl p-8 text-center text-sm text-zinc-400">User not found</div>;
-  }
+  const field = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    setForm(p => ({ ...p, [key]: e.target.value }));
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-40">
+      <div className="w-5 h-5 rounded-full border-2 border-foreground border-t-transparent animate-spin" />
+    </div>
+  );
+
+  if (!data) return <p className="text-sm text-muted-foreground py-8 text-center">User not found</p>;
+
+  const initials = `${data.user.first_name?.[0] ?? ""}${data.user.last_name?.[0] ?? ""}`.toUpperCase();
+  const fullName = `${data.user.first_name} ${data.user.last_name}`;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-      className="max-w-5xl mx-auto space-y-8 py-2"
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="mx-auto max-w-6xl space-y-4 px-3 py-2 sm:px-0"
     >
-      {/* Header */}
-      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
-        <div className="flex items-center gap-4">
+      {/* Top bar — back on right, actions on right */}
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <Button variant="ghost" size="sm" asChild className="h-8 px-2 text-muted-foreground hover:text-foreground">
+          <Link to="/admin/users">
+            <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to users
+          </Link>
+        </Button>
+      </div>
+
+      {/* Identity header — dark navy card */}
+      <div className="rounded-xl bg-[#0f172a] px-4 py-3.5 flex items-center justify-between gap-3 sm:px-5 sm:py-4">
+        <div className="flex items-center gap-3">
           {form.photo_url ? (
-            <img src={form.photo_url} alt="Profile" className="h-14 w-14 rounded-full object-cover border border-zinc-200" />
+            <img src={form.photo_url} alt="Profile" className="h-10 w-10 rounded-full object-cover border border-white/20 shrink-0" />
           ) : (
-            <div className="h-14 w-14 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center text-lg font-bold text-zinc-400">
-              {data.user.first_name[0]}{data.user.last_name[0]}
+            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-white font-semibold text-sm shrink-0">
+              {initials || <UserCircle2 className="w-5 h-5 text-white/60" />}
             </div>
           )}
-          <div>
-            <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-0.5">Admin Â· Users</p>
-            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">{data.user.first_name} {data.user.last_name}</h1>
-            <p className="text-sm text-zinc-400 mt-0.5">{data.user.email}</p>
-          </div>
+          <h1 className="text-base font-semibold text-white">{fullName}</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${data.user.status === "active" ? "bg-emerald-50 text-emerald-700" : data.user.status === "suspended" ? "bg-red-50 text-red-600" : "bg-zinc-100 text-zinc-500"}`}>{data.user.status}</span>
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-500 capitalize">{data.user.role}</span>
-          <Link to="/admin/users" className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">← Back</Link>
-          <button onClick={load} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Refresh</button>
-          <button onClick={remove} disabled={deleting} className="text-sm border border-red-200 rounded-xl px-4 py-2.5 text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50">
-            {deleting ? "Deleting..." : "Delete"}
+
+        {/* Action buttons inside header */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setStatusDialogOpen(true)}
+            disabled={statusUpdating}
+            className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-50 ${
+              data.user.status === "suspended"
+                ? "border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                : "border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+            }`}
+          >
+            {statusUpdating ? "Updating…" : data.user.status === "suspended" ? "Reactivate" : "Suspend"}
           </button>
-          <button onClick={save} disabled={saving} className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors disabled:opacity-50">
-            {saving ? "Saving..." : "Save"}
+          <button
+            onClick={remove}
+            disabled={deleting}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="text-xs font-medium px-4 py-1.5 rounded-lg bg-white text-[#0f172a] hover:bg-white/90 transition-colors disabled:opacity-50"
+          >
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Edit form */}
-        <div className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 space-y-5">
-          <p className="text-sm font-semibold text-zinc-900 border-b border-zinc-100 pb-3">Account & Profile</p>
+      <AlertDialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {data.user.status === "suspended" ? "Reactivate this user?" : "Suspend this user?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {data.user.status === "suspended"
+                ? "This will restore access for the user and mark the account active again."
+                : "This will restrict the account until it is manually reactivated."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={statusUpdating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void toggleStatus();
+              }}
+              className={data.user.status === "suspended" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-amber-600 hover:bg-amber-700"}
+              disabled={statusUpdating}
+            >
+              {data.user.status === "suspended" ? "Reactivate" : "Suspend"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-          <div className="grid sm:grid-cols-2 gap-3">
+      {/* Main grid */}
+      <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
+
+        {/* Edit form */}
+        <div className="rounded-xl border border-border/60 bg-background p-4 space-y-3.5 sm:p-5 sm:space-y-4">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Account & profile</p>
+
+          <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
             <div>
-              <label className="text-xs text-zinc-400 mb-1.5 block">First Name</label>
-              <input value={form.first_name} onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" />
+              <label className={labelClass}>First name</label>
+              <input value={form.first_name} onChange={field("first_name")} className={inputClass} />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1.5 block">Last Name</label>
-              <input value={form.last_name} onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" />
+              <label className={labelClass}>Last name</label>
+              <input value={form.last_name} onChange={field("last_name")} className={inputClass} />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1.5 block">Status</label>
-              <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors">
-                <option value="active">active</option>
-                <option value="inactive">inactive</option>
-                <option value="suspended">suspended</option>
+              <label className={labelClass}>Status</label>
+              <select value={form.status} onChange={field("status")} className={inputClass}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
               </select>
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1.5 block">Public Slug</label>
-              <input value={form.public_slug} onChange={e => setForm(p => ({ ...p, public_slug: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm font-mono outline-none focus:border-zinc-500 transition-colors" />
+              <label className={labelClass}>Public slug</label>
+              <input value={form.public_slug} onChange={field("public_slug")} className={`${inputClass} font-mono`} />
             </div>
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400 mb-1.5 block">Photo URL</label>
-            <input value={form.photo_url} onChange={e => setForm(p => ({ ...p, photo_url: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" placeholder="https://..." />
+            <label className={labelClass}>Photo URL</label>
+            <input value={form.photo_url} onChange={field("photo_url")} className={inputClass} placeholder="https://..." />
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400 mb-1.5 block">Title</label>
-            <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" />
+            <label className={labelClass}>Title</label>
+            <input value={form.title} onChange={field("title")} className={inputClass} />
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400 mb-1.5 block">Bio</label>
-            <textarea value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} rows={3} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors resize-none" />
+            <label className={labelClass}>Bio</label>
+            <textarea value={form.bio} onChange={field("bio")} rows={3} className={`${inputClass} resize-none`} />
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-3">
+          <Separator />
+
+          <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
             <div>
-              <label className="text-xs text-zinc-400 mb-1.5 block">Phone</label>
-              <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" />
+              <label className={labelClass}>Phone</label>
+              <input value={form.phone} onChange={field("phone")} className={inputClass} />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1.5 block">Location</label>
-              <input value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" />
+              <label className={labelClass}>Location</label>
+              <input value={form.location} onChange={field("location")} className={inputClass} />
             </div>
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400 mb-1.5 block">Website</label>
-            <input value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" placeholder="https://..." />
+            <label className={labelClass}>Website</label>
+            <input value={form.website} onChange={field("website")} className={inputClass} placeholder="https://..." />
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-3">
-            {[["LinkedIn", "linkedin_url"], ["Twitter", "twitter_url"], ["Instagram", "instagram_url"]].map(([label, key]) => (
+          <Separator />
+
+          <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+            {([
+              { label: "LinkedIn", icon: Linkedin, key: "linkedin_url", color: "text-blue-500" },
+              { label: "Twitter", icon: Twitter, key: "twitter_url", color: "text-sky-500" },
+              { label: "Instagram", icon: Instagram, key: "instagram_url", color: "text-pink-500" },
+            ] as const).map(({ label, icon: Icon, key, color }) => (
               <div key={key}>
-                <label className="text-xs text-zinc-400 mb-1.5 block">{label}</label>
-                <input value={form[key as keyof typeof form]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-zinc-500 transition-colors" />
+                <label className={`${labelClass} flex items-center gap-1.5`}>
+                  <Icon className={`w-3.5 h-3.5 ${color}`} /> {label}
+                </label>
+                <input value={form[key]} onChange={field(key)} className={inputClass} />
               </div>
             ))}
           </div>
         </div>
 
         {/* Sidebar */}
-        <div className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-5">
-          <p className="text-sm font-semibold text-zinc-900 border-b border-zinc-100 pb-3">Account Context</p>
-          <div className="space-y-4 text-sm">
-            <div>
-              <p className="text-xs text-zinc-400 mb-0.5">Company</p>
-              <p className="font-medium text-zinc-900">{data.company?.name || "Not assigned"}</p>
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border/60 bg-background p-4 sm:p-5">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-1">Account context</p>
+            <SummaryRow icon={Building2} label="Company" iconColor="bg-blue-50 text-blue-500">
+              <p className="text-sm text-foreground">{data.company?.name || "Not assigned"}</p>
+            </SummaryRow>
+            <SummaryRow icon={CreditCard} label="Card" iconColor="bg-emerald-50 text-emerald-500">
+              <p className="text-sm font-mono text-foreground">{data.card?.code || "—"}</p>
+              {data.card?.status && (
+                <p className="text-[11px] capitalize text-emerald-500">{data.card.status}</p>
+              )}
+            </SummaryRow>
+            <SummaryRow icon={Clock} label="Joined" iconColor="bg-amber-50 text-amber-500">
+              <p className="text-sm text-foreground">
+                {data.user.created_at
+                  ? new Date(data.user.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                  : "—"}
+              </p>
+            </SummaryRow>
+          </div>
+
+          {/* Status indicator card */}
+          <div className="rounded-xl border border-border/60 bg-background p-4 space-y-3 sm:p-5">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Current status</p>
+            <div className="flex items-center gap-2">
+              <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full capitalize
+                ${data.user.status === "active" ? "bg-emerald-50 text-emerald-600" :
+                  data.user.status === "suspended" ? "bg-red-50 text-red-500" :
+                  "bg-muted text-muted-foreground"}`}>
+                <span className={`w-1.5 h-1.5 rounded-full
+                  ${data.user.status === "active" ? "bg-emerald-500" :
+                    data.user.status === "suspended" ? "bg-red-400" : "bg-muted-foreground"}`}
+                />
+                {data.user.status}
+              </span>
+              <span className="inline-flex text-xs font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground capitalize">
+                {data.user.role}
+              </span>
             </div>
-            <div>
-              <p className="text-xs text-zinc-400 mb-0.5">Card</p>
-              <p className="font-medium text-zinc-900 font-mono">{data.card?.code || "No card"}</p>
-              <p className="text-xs text-zinc-400 capitalize">{data.card?.status || "-"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-zinc-400 mb-0.5">Joined</p>
-              <p className="font-medium text-zinc-900">{data.user.created_at ? new Date(data.user.created_at).toLocaleDateString() : "-"}</p>
-            </div>
+            <p className="text-xs text-muted-foreground">{data.user.email}</p>
           </div>
         </div>
       </div>

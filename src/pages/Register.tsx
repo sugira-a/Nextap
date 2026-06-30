@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { apiRequest, storeAuthTokens } from "@/lib/api";
@@ -9,6 +9,10 @@ import Footer from "@/components/Footer";
 
 const Register = () => {
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const [searchParams] = useSearchParams();
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -59,7 +63,7 @@ const Register = () => {
         }
       }
 
-      navigate("/dashboard");
+      navigate("/profile-setup");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Registration failed");
     } finally {

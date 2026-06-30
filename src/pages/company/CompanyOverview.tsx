@@ -113,7 +113,7 @@ const CompanyOverview = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6"
+          className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <div className="flex items-center justify-between mb-6">
             <p className="text-sm font-semibold text-zinc-900">Activity (Last 7 Days)</p>
@@ -127,16 +127,16 @@ const CompanyOverview = () => {
               <div className="flex items-end gap-2 h-36">
                 {analyticsData.map((d, idx) => {
                   const pct = Math.max((d.events / maxEvents) * 100, 6);
-                  return (
-                    <motion.div
-                      key={d.date}
-                      initial={{ height: 0 }}
-                      animate={{ height: `${pct}%` }}
-                      transition={{ type: "spring", stiffness: 80, damping: 20, delay: 0.3 + idx * 0.05 }}
-                      title={`${d.events} events`}
-                      className="flex-1 rounded-t-md bg-zinc-900 hover:bg-zinc-700 transition-colors cursor-default"
-                    />
-                  );
+                      return (
+                        <motion.div
+                          key={d.date}
+                          initial={{ height: 0 }}
+                          animate={{ height: `${pct}%` }}
+                          transition={{ type: "spring", stiffness: 80, damping: 20, delay: 0.3 + idx * 0.05 }}
+                          title={`${d.events} events`}
+                          className="flex-1 rounded-t-md bg-[#1e3a5f] hover:bg-[#163147] transition-colors cursor-default"
+                        />
+                      );
                 })}
               </div>
               <div className="flex gap-2 mt-3">
@@ -155,7 +155,7 @@ const CompanyOverview = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6"
+          className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <p className="text-sm font-semibold text-zinc-900 mb-5">Card Distribution</p>
           <div className="space-y-4">
@@ -176,7 +176,7 @@ const CompanyOverview = () => {
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
                       transition={{ type: "spring", stiffness: 60, damping: 25, delay: 0.4 }}
-                      className="h-full bg-zinc-900 rounded-full"
+                      className="h-full bg-[#1e3a5f] rounded-full"
                     />
                   </div>
                 </div>

@@ -101,7 +101,7 @@ const InvitationManagement = () => {
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-4"
+          className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-4 shadow-md hover:shadow-lg transition-shadow"
         >
           <p className="text-sm font-semibold text-zinc-900">New Invitation</p>
           <div className="grid sm:grid-cols-2 gap-4">

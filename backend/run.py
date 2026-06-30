@@ -2,6 +2,7 @@
 """Flask application entry point"""
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 try:
@@ -9,8 +10,9 @@ try:
 except ModuleNotFoundError:
     from app import create_app, db
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from the backend folder so Flask commands work
+# whether they are launched from the repo root or the backend directory.
+load_dotenv(Path(__file__).resolve().parent / '.env')
 
 # Create app
 app = create_app(os.getenv('FLASK_ENV', 'development'))

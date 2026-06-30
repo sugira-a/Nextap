@@ -2,76 +2,117 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowRight, CreditCard, Palette, Zap, Shield, BarChart3, Check, Smartphone, Share2, Users } from "lucide-react";
+import { ArrowRight, CreditCard, Palette, Zap, Shield, BarChart3, Check, Smartphone, Share2, Users, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import nfcCard from "@/assets/nfc-card-hero.png";
+import back1 from "../assets/back1.png";
+import back2 from "../assets/back2.png";
+import back3 from "../assets/back3.png";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.5 } }),
 };
 
+// Add CSS for moving colors
+const styles = `
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 6s ease infinite;
+  }
+  @keyframes color-pulse {
+    0%, 100% { filter: hue-rotate(0deg); }
+    50% { filter: hue-rotate(360deg); }
+  }
+  .animate-hue {
+    animation: color-pulse 8s ease-in-out infinite;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.innerText = styles;
+  document.head.appendChild(styleSheet);
+}
+
 const LandingPage = () => (
   <div className="min-h-screen bg-background">
     <Navbar dark={false} />
 
     {/* Hero */}
-    <section className="container py-12 md:py-20">
-      <div className="grid md:grid-cols-2 gap-8 md:gap-10 items-center">
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
-          <span className="inline-block px-4 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 mb-5 uppercase tracking-wider">
-            Digital Networking
-          </span>
-          <h1 className="text-2xl md:text-4xl font-semibold text-black leading-snug tracking-normal">
-            Tap to share<br />your professional identity
-          </h1>
-          <p className="text-sm md:text-base text-gray-600 mt-5 max-w-lg leading-relaxed">
-            An elegant NFC business card that shares your complete profile, socials, and portfolio instantly, no app required.
-          </p>
-          <div className="hidden md:flex flex-wrap gap-4 mt-8">
-            <Button asChild size="lg" className="bg-emerald-500 text-white hover:bg-emerald-600">
-              <Link to="/register">Get Your Card <ArrowRight className="ml-2 w-4 h-4" /></Link>
-            </Button>
-          </div>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.2 }} className="flex justify-center">
-          <img src={nfcCard} alt="NexTap NFC Business Card" width={480} height={360} className="drop-shadow-2xl" />
-        </motion.div>
-      </div>
-      
-      {/* Mobile button - below image */}
-      <div className="flex md:hidden justify-center mt-8">
-        <Button asChild size="lg" className="bg-emerald-500 text-white hover:bg-emerald-600">
-          <Link to="/register">Get Your Card <ArrowRight className="ml-2 w-4 h-4" /></Link>
-        </Button>
-      </div>
-    </section>
-
-    {/* How it Works */}
-    <section id="how-it-works" className="py-16 md:py-24 bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="container max-w-5xl">
-        <div className="text-center mb-16">
-          <motion.h2
+    <section className="min-h-screen md:min-h-screen flex items-start pt-12 md:pt-24 px-4 md:px-6 bg-white">
+      <div className="max-w-7xl mx-auto w-full">
+        <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-start">
+          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
+            <h1 className="text-xl md:text-4xl font-semibold text-black leading-snug tracking-tight">
+              Tap to share<br />your professional identity
+            </h1>
+            <p className="text-sm md:text-base text-gray-600 mt-2 md:mt-3 max-w-lg leading-normal">
+              An elegant NFC business card that shares your complete profile, socials, and portfolio instantly, no app required.
+            </p>
+            <div className="hidden md:flex flex-wrap gap-4 mt-6">
+              <Button asChild size="lg" className="bg-emerald-500 text-white hover:bg-emerald-600">
+                <Link to="/register">Get Your Card <ArrowRight className="ml-2 w-4 h-4" /></Link>
+              </Button>
+            </div>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.2 }} className="flex justify-center">
+            <img src={back2} alt="NexTap NFC Business Card" width={480} height={360} className="drop-shadow-2xl w-full md:w-auto max-w-sm md:max-w-none" />
+          </motion.div>
+        </div>
+        
+        {/* Mobile button - below image */}
+        <div className="flex md:hidden justify-center mt-4">
+          <Button asChild size="sm" className="bg-emerald-500 text-white hover:bg-emerald-600 text-sm py-2 px-6">
+            <Link to="/register">Get Your Card <ArrowRight className="ml-2 w-3 h-3" /></Link>
+          </Button>
+        </div>
+        
+        {/* Bottom scroll section - professional scroll indicator */}
+        <div className="flex justify-center mt-12 md:mt-24">
+          <motion.button
+            onClick={() => {
+              document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+            }}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-2xl md:text-3xl font-bold text-slate-900 leading-tight mb-4"
+            animate={{ y: [0, 8, 0] }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            className="focus:outline-none"
           >
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-xs md:text-sm text-gray-500 font-medium tracking-wide">Scroll to explore</span>
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center group hover:bg-emerald-100 transition-colors">
+                <ChevronDown className="w-5 h-5 md:w-6 md:h-6 text-emerald-600 animate-bounce" />
+              </div>
+            </div>
+          </motion.button>
+        </div>
+      </div>
+    </section>
+
+    {/* How it Works */}
+    <section id="how-it-works" className="py-12 md:py-24 bg-white relative overflow-hidden">
+      <img src={back1} alt="" className="absolute inset-0 w-full h-full object-cover opacity-5" />
+      <div className="container max-w-5xl relative z-10 px-4">
+        <div className="text-center mb-10 md:mb-16">
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 leading-tight mb-2 md:mb-4">
             How It Works
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-sm md:text-base text-slate-600 max-w-2xl mx-auto"
-          >
+          </h2>
+          <p className="text-xs md:text-base text-slate-600 max-w-2xl mx-auto">
             Three elegant steps to transform your networking
-          </motion.p>
+          </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-4 md:gap-8">
           {[
             {
               title: "Design your card",
@@ -95,15 +136,15 @@ const LandingPage = () => (
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: i * 0.1 }}
-              className="relative rounded-2xl bg-white p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-slate-100"
+              className="relative rounded-2xl bg-white p-5 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-slate-100"
             >
-              <div className="absolute -top-4 -left-4 w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
+              <div className="absolute -top-4 -left-4 w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm md:text-lg shadow-md">
                 {item.step}
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-3 mt-2">
+              <h3 className="text-base md:text-lg font-semibold text-slate-900 mb-2 md:mb-3 mt-2">
                 {item.title}
               </h3>
-              <p className="text-sm leading-6 text-slate-600">
+              <p className="text-xs md:text-sm leading-5 md:leading-6 text-slate-600">
                 {item.desc}
               </p>
             </motion.div>
@@ -113,30 +154,19 @@ const LandingPage = () => (
     </section>
 
     {/* Features */}
-    <section id="features" className="py-12 md:py-16 bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      <div className="container max-w-6xl">
+    <section id="features" className="py-12 md:py-16 bg-white relative overflow-hidden">
+      <img src={back2} alt="" className="absolute inset-0 w-full h-full object-cover opacity-5" />
+      <div className="container max-w-6xl relative z-10 px-4">
         <div className="text-center mb-8 md:mb-10">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="font-heading text-3xl md:text-5xl font-semibold tracking-tight text-black leading-tight mb-3"
-          >
+          <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-black leading-tight mb-2 md:mb-3">
             Features
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-sm md:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed"
-          >
+          </h2>
+          <p className="text-xs md:text-sm text-gray-600 leading-relaxed">
             What makes NexTap powerful
-          </motion.p>
+          </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-3 gap-3 md:gap-4">
           {[
             { icon: Zap, title: "Instant Connection", desc: "Share your professional identity instantly with one effortless tap." },
             { icon: Shield, title: "Privacy Control", desc: "Choose what details to share and update them whenever your profile evolves." },
@@ -150,8 +180,8 @@ const LandingPage = () => (
               transition={{ duration: 0.5, delay: i * 0.1, ease: "easeOut" }}
               className="group rounded-2xl border border-slate-200 bg-white p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
             >
-              <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center mb-4">
-                <feature.icon className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center mb-4">
+                <feature.icon className="w-5 h-5 text-gray-700" />
               </div>
               <h3 className="text-base font-semibold text-black mb-2">
                 {feature.title}
@@ -166,30 +196,19 @@ const LandingPage = () => (
     </section>
 
     {/* Pricing */}
-    <section id="pricing" className="py-16 md:py-20 bg-gradient-to-b from-white via-slate-50 to-white">
-      <div className="container max-w-6xl">
+    <section id="pricing" className="py-16 md:py-20 bg-white relative overflow-hidden">
+      <img src={back3} alt="" className="absolute inset-0 w-full h-full object-cover opacity-5" />
+      <div className="container max-w-6xl relative z-10">
         <div className="text-center mb-10 md:mb-12">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="font-heading text-3xl md:text-5xl font-semibold tracking-tight text-black leading-tight mb-4"
-          >
+          <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-black leading-tight mb-3">
             Pricing
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-sm md:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed"
-          >
+          </h2>
+          <p className="text-sm md:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
             Fair and transparent
-          </motion.p>
+          </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4 lg:gap-6 items-stretch">
+        <div className="grid md:grid-cols-3 gap-3 lg:gap-4 items-stretch">
           {[
             {
               name: "Individual",
@@ -227,13 +246,13 @@ const LandingPage = () => (
               transition={{ duration: 0.6, delay: i * 0.1 }}
               className={`relative flex h-full flex-col rounded-2xl border transition-all duration-300 ${
                 plan.popular
-                  ? 'border-gray-300 shadow-md overflow-visible pt-6'
+                  ? 'border-gray-300 shadow-2xl overflow-visible pt-4 transform hover:scale-105'
                   : 'border-gray-200 overflow-hidden'
               }`}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                  <span className="bg-black text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg">
+                  <span className="bg-gray-700 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg">
                     MOST POPULAR
                   </span>
                 </div>
@@ -241,18 +260,18 @@ const LandingPage = () => (
 
               {plan.popular ? (
                 <>
-                  {/* Black section - header */}
-                  <div className="bg-black text-white p-6 pt-8">
-                    <h3 className="text-lg font-semibold">{plan.name}</h3>
-                    <p className="text-sm text-gray-300 mt-1">{plan.description}</p>
-                    <div className="mt-4 flex items-baseline gap-1">
-                      <span className="text-3xl font-bold">{plan.price}</span>
-                      <span className="text-sm text-gray-300">{plan.period}</span>
+                  {/* Grey section - header */}
+                  <div className="bg-gray-700 text-white p-4 pt-5">
+                    <h3 className="text-base font-semibold">{plan.name}</h3>
+                    <p className="text-xs text-gray-300 mt-0.5">{plan.description}</p>
+                    <div className="mt-3 flex items-baseline gap-1">
+                      <span className="text-2xl font-bold">{plan.price}</span>
+                      <span className="text-xs text-gray-300">{plan.period}</span>
                     </div>
                   </div>
 
                   {/* White section - features and button */}
-                  <div className="bg-white text-black p-6 flex-1 flex flex-col">
+                  <div className="bg-white text-black p-5 flex-1 flex flex-col">
                     <ul className="space-y-2.5 mb-6 flex-1">
                       {plan.features.map((feature, j) => (
                         <li key={j} className="flex items-center gap-2.5">
@@ -261,7 +280,7 @@ const LandingPage = () => (
                         </li>
                       ))}
                     </ul>
-                    <Button asChild className="w-full py-2.5 font-semibold rounded-lg bg-black text-white hover:bg-white hover:text-black transition-all duration-200">
+                    <Button asChild className="w-full py-2 text-sm font-semibold rounded-lg bg-black text-white hover:bg-white hover:text-black transition-all duration-200">
                       <Link to="/register">{plan.buttonText}</Link>
                     </Button>
                   </div>
@@ -269,22 +288,22 @@ const LandingPage = () => (
               ) : (
                 <>
                   {/* Light cards - single white color */}
-                  <div className="bg-white text-black p-6 flex-1 flex flex-col">
-                    <h3 className="text-lg font-semibold text-black">{plan.name}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{plan.description}</p>
-                    <div className="mt-4 flex items-baseline gap-1 mb-6">
-                      <span className="text-3xl font-bold text-black">{plan.price}</span>
-                      <span className="text-sm text-gray-600">{plan.period}</span>
+                  <div className="bg-white text-black p-5 flex-1 flex flex-col">
+                    <h3 className="text-base font-semibold text-black">{plan.name}</h3>
+                    <p className="text-xs text-gray-600 mt-0.5">{plan.description}</p>
+                    <div className="mt-3 flex items-baseline gap-1 mb-4">
+                      <span className="text-2xl font-bold text-black">{plan.price}</span>
+                      <span className="text-xs text-gray-600">{plan.period}</span>
                     </div>
-                    <ul className="space-y-2.5 mb-6 flex-1">
+                    <ul className="space-y-2 mb-4 flex-1">
                       {plan.features.map((feature, j) => (
                         <li key={j} className="flex items-center gap-2.5">
                           <Check className="w-4 h-4 shrink-0 text-green-500" />
-                          <span className="text-sm text-gray-800">{feature}</span>
+                          <span className="text-xs text-gray-800">{feature}</span>
                         </li>
                       ))}
                     </ul>
-                    <Button asChild className="w-full py-2.5 font-semibold rounded-lg bg-black text-white hover:bg-white hover:text-black transition-all duration-200">
+                    <Button asChild className="w-full py-2 text-sm font-semibold rounded-lg bg-black text-white hover:bg-white hover:text-black transition-all duration-200">
                       <Link to="/register">{plan.buttonText}</Link>
                     </Button>
                   </div>
@@ -322,7 +341,7 @@ const LandingPage = () => (
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
-          <h2 className="font-heading text-3xl md:text-4xl font-semibold tracking-tight leading-tight mb-4">
+          <h2 className="font-heading text-2xl md:text-3xl font-semibold tracking-tight leading-tight mb-4">
             Get Started Now
           </h2>
           <p className="text-base md:text-lg text-gray-300 mb-8 max-w-xl mx-auto leading-relaxed">
@@ -335,7 +354,7 @@ const LandingPage = () => (
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="bg-transparent border-white text-white hover:bg-white hover:text-black px-6 py-3 text-base font-semibold">
-              <a href="tel:+15550000000">Call Us</a>
+              <a href="tel:+250790153256">Call Us</a>
             </Button>
           </div>
         </motion.div>

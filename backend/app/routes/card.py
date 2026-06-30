@@ -17,7 +17,7 @@ def get_card(code):
     if not card:
         return {'error': 'Card not found'}, 404
     
-    # Track event
+    # Track event asynchronously via flush (deferred commit)
     event = AnalyticsEvent(
         card_id=card.id,
         company_id=card.company_id,
@@ -27,7 +27,7 @@ def get_card(code):
         referrer=request.referrer
     )
     db.session.add(event)
-    db.session.commit()
+    db.session.flush()  # Deferred persist - commit happens at end of request
     
     # Claimed cards always resolve to the profile page.
     if card.assigned_user and card.assigned_user.profile:

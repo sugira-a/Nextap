@@ -63,45 +63,54 @@ const Navbar = ({ dark = true }: { dark?: boolean } = {}) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 md:hidden bg-white/95 backdrop-blur-sm"
+            className="fixed inset-0 z-50 md:hidden bg-slate-950/80 backdrop-blur-md"
           >
             <motion.div
-              initial={{ y: -24, opacity: 0, scale: 0.98 }}
+              initial={{ y: -16, opacity: 0, scale: 0.985 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: -18, opacity: 0, scale: 0.98 }}
+              exit={{ y: -12, opacity: 0, scale: 0.985 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className={`flex min-h-full w-full flex-col ${dark ? 'bg-white text-slate-900' : 'bg-background'}`}
+              className="relative flex min-h-screen w-full flex-col overflow-hidden bg-gradient-to-b from-white via-white to-slate-50 text-slate-900"
             >
-              <div className={`flex items-center justify-between border-b px-5 py-4 ${dark ? 'border-slate-200 bg-white' : 'border-border'}`}>
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute -top-24 right-[-4rem] h-56 w-56 rounded-full bg-accent/10 blur-3xl" />
+                <div className="absolute bottom-[-5rem] left-[-4rem] h-56 w-56 rounded-full bg-slate-900/5 blur-3xl" />
+              </div>
+
+              <div className="relative flex items-center justify-between border-b border-slate-200/80 bg-white/85 px-5 py-4 backdrop-blur-xl">
                 <Link to="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
-                  <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center">
-                    <span className="text-white font-heading font-bold text-sm">N</span>
+                  <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-sm shadow-black/10">
+                    <span className="text-primary-foreground font-heading font-bold text-sm">N</span>
                   </div>
                   <span className="font-heading font-bold text-xl text-slate-900">NexTap</span>
                 </Link>
                 <button
                   onClick={() => setMobileOpen(false)}
                   aria-label="Close menu"
-                  className="rounded-full border border-slate-200 p-2 transition-colors hover:bg-slate-100"
+                  className="rounded-full border border-slate-200 bg-white p-2 transition-colors hover:bg-slate-100"
                 >
                   <X className="h-5 w-5 text-slate-600" />
                 </button>
               </div>
 
-              <div className="flex flex-1 flex-col justify-between px-5 py-6">
-                <div className="space-y-2.5">
-                  <a href="#features" className="block rounded-lg border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-900 transition-all hover:bg-accent hover:text-white hover:border-accent" onClick={() => setMobileOpen(false)}>Features</a>
-                  <a href="#how-it-works" className="block rounded-lg border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-900 transition-all hover:bg-accent hover:text-white hover:border-accent" onClick={() => setMobileOpen(false)}>How it Works</a>
-                  <a href="#pricing" className="block rounded-lg border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-900 transition-all hover:bg-accent hover:text-white hover:border-accent" onClick={() => setMobileOpen(false)}>Pricing</a>
+              <div className="relative flex flex-1 flex-col px-5 py-6 sm:px-6">
+                <div className="space-y-3">
+                  <a href="#features" className="block rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-900 shadow-sm shadow-slate-200/50 transition-all hover:-translate-y-0.5 hover:border-accent hover:text-accent hover:shadow-md" onClick={() => setMobileOpen(false)}>Features</a>
+                  <a href="#how-it-works" className="block rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-900 shadow-sm shadow-slate-200/50 transition-all hover:-translate-y-0.5 hover:border-accent hover:text-accent hover:shadow-md" onClick={() => setMobileOpen(false)}>How it Works</a>
+                  <a href="#pricing" className="block rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-900 shadow-sm shadow-slate-200/50 transition-all hover:-translate-y-0.5 hover:border-accent hover:text-accent hover:shadow-md" onClick={() => setMobileOpen(false)}>Pricing</a>
                 </div>
 
-                <div className="mt-8 flex flex-col gap-2.5 rounded-xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 shadow-sm">
-                  <Button variant="outline" asChild className="h-10 rounded-lg text-sm font-semibold border-slate-300 text-slate-900 hover:bg-slate-100">
-                    <Link to="/login" onClick={() => setMobileOpen(false)}>Log in</Link>
-                  </Button>
-                  <Button asChild className="h-10 rounded-lg text-sm font-semibold bg-accent text-white hover:bg-accent/90">
-                    <Link to="/register" onClick={() => setMobileOpen(false)}>Get Started</Link>
-                  </Button>
+                <div className="mt-auto pt-8">
+                  <div className="rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-lg shadow-slate-200/60 backdrop-blur-sm">
+                    <div className="flex flex-col gap-2.5">
+                      <Button variant="outline" asChild className="h-11 rounded-xl border-slate-300 text-sm font-semibold text-slate-900 hover:bg-slate-100">
+                        <Link to="/login" onClick={() => setMobileOpen(false)}>Log in</Link>
+                      </Button>
+                      <Button asChild className="h-11 rounded-xl text-sm font-semibold bg-accent text-white shadow-sm shadow-accent/25 hover:bg-accent/90">
+                        <Link to="/register" onClick={() => setMobileOpen(false)}>Get Started</Link>
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>

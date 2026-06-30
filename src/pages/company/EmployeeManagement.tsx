@@ -114,7 +114,7 @@ const EmployeeManagement = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="w-5 h-5 rounded-full border-2 border-zinc-900 border-t-transparent animate-spin" />
@@ -180,7 +180,7 @@ const EmployeeManagement = () => {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-xs text-zinc-400">{total} total Â· page {page} of {totalPages}</p>
+          <p className="text-xs text-zinc-400">{total} total · page {page} of {totalPages}</p>
           <div className="flex gap-2">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}

@@ -23,12 +23,42 @@ interface ProfileCardPreviewProps {
 
 const ProfileCardPreview = ({ profile, compact = false }: ProfileCardPreviewProps) => {
   const handleSaveContact = () => {
-    const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${profile.name}\nTITLE:${profile.title}\nORG:${profile.company}\nTEL:${profile.phone || ''}\nEMAIL:${profile.email || ''}\nURL:${profile.website || ''}\nNOTE:${profile.bio}\nEND:VCARD`;
-    const blob = new Blob([vcard], { type: "text/vcard" });
+    // Build comprehensive vCard with all contact details
+    const vcard = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      `FN:${profile.name}`,
+      `N:${profile.name.split(" ").pop() || ""};;${profile.name.split(" ").slice(0, -1).join(" ")};;`,
+      // Organization/Company
+      profile.company ? `ORG:${profile.company}` : "",
+      profile.title ? `TITLE:${profile.title}` : "",
+      // Phone numbers
+      profile.phone ? `TEL;TYPE=CELL:${profile.phone}` : "",
+      profile.whatsapp ? `TEL;TYPE=CELL:${profile.whatsapp}` : "",
+      // Email
+      profile.email ? `EMAIL;TYPE=INTERNET:${profile.email}` : "",
+      // Website/URL
+      profile.website ? `URL:${profile.website.startsWith("http") ? profile.website : "https://" + profile.website}` : "",
+      // Bio/Note
+      profile.bio ? `NOTE:${profile.bio.replace(/\n/g, "\\n")}` : "",
+      // Social profiles
+      profile.linkedin ? `X-SOCIALPROFILE;type=linkedin:${profile.linkedin}` : "",
+      profile.twitter ? `X-SOCIALPROFILE;type=twitter:${profile.twitter}` : "",
+      profile.instagram ? `X-SOCIALPROFILE;type=instagram:${profile.instagram}` : "",
+      // Photo/Avatar
+      profile.avatar ? `PHOTO;VALUE=URI:${profile.avatar}` : "",
+      // Revision timestamp
+      `REV:${new Date().toISOString()}`,
+      // Unique identifier
+      `UID:${profile.name.replace(/\s/g, "_")}-${Date.now()}@nextap`,
+      "END:VCARD",
+    ].filter(Boolean).join("\r\n");
+    
+    const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${profile.name.replace(/\s/g, '_')}.vcf`;
+    a.download = `${profile.name.replace(/\s/g, "_")}.vcf`;
     a.click();
     URL.revokeObjectURL(url);
   };

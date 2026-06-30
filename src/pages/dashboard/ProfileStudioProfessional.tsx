@@ -404,6 +404,7 @@ const apiDesignToSaved = (d: ApiDesign): SavedDesign => ({
   isActive: d.is_active,
 });
 
+
 // ── Share Contact Modal ───────────────────────────────────────────────────────
 type ShareContactForm = { name: string; phone: string; email: string; company: string; note: string; };
 
@@ -714,6 +715,7 @@ export default function ProfileStudioProfessional() {
   const stageHostRef = useRef<HTMLDivElement>(null);
   const canvasRef      = useRef<HTMLDivElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const bgUploadInputRef = useRef<HTMLInputElement>(null);
   const photosUploadRef = useRef<HTMLInputElement>(null);
   const lastSavedDraftRef = useRef<string>("");
 
@@ -879,6 +881,20 @@ export default function ProfileStudioProfessional() {
     const reader = new FileReader();
     reader.onload = () => { if (typeof reader.result === "string") updateElement(selectedElement.id, { src: reader.result }); };
     reader.readAsDataURL(file);
+  };
+
+  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setBg({ ...bg, imageUrl: reader.result, type: "solid" });
+        toast.success("Background image updated!", { duration: 2000 });
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
   // Upload image from Photos tab — creates a new image element on the canvas
@@ -1277,7 +1293,11 @@ export default function ProfileStudioProfessional() {
   };
 
   const filteredTemplates = TEMPLATES.filter((t) => categoryFilter === "All" || t.category === categoryFilter);
-  const canvasBg = bg.type === "gradient" ? bg.gradient : bg.color;
+  const canvasBg = bg.imageUrl
+    ? `url(${bg.imageUrl}) center/cover no-repeat`
+    : bg.type === "gradient"
+    ? bg.gradient
+    : bg.color;
   const cardOwnerName = elements.find((el) => el.type === "text" && el.fontSize >= 20)?.text?.slice(0, 30) ?? "Card Owner";
 
   const downloadVCard = () => {
@@ -2029,13 +2049,47 @@ export default function ProfileStudioProfessional() {
                       {["#ffffff", "#000000", "#1a1c2f", "#f3f4f6"].map((color) => (
                         <button
                           key={color}
-                          onClick={() => setBg({ ...bg, color, type: "solid" })}
-                          className={`h-8 rounded border-2 transition-all ${bg.color === color ? "border-white" : "border-white/20 hover:border-white/40"}`}
+                          onClick={() => setBg({ ...bg, color, type: "solid", imageUrl: "" })}
+                          className={`h-8 rounded border-2 transition-all ${bg.color === color && !bg.imageUrl ? "border-white" : "border-white/20 hover:border-white/40"}`}
                           style={{ backgroundColor: color }}
                           title={color}
                         />
                       ))}
                     </div>
+                  </div>
+
+                  {/* Background image upload */}
+                  <div className="pt-2 border-t border-white/[0.08]">
+                    <p className="text-[9px] text-slate-500 mb-2.5">Background Image</p>
+                    <button
+                      onClick={() => bgUploadInputRef.current?.click()}
+                      className="w-full px-3 py-2 text-xs bg-white/[0.06] border border-white/[0.10] rounded-lg text-slate-300 hover:bg-white/[0.10] transition-colors flex items-center justify-center gap-2">
+                      <ImagePlus className="w-3.5 h-3.5" />
+                      {bg.imageUrl ? "Change Background Image" : "Upload Background Image"}
+                    </button>
+                    <input
+                      ref={bgUploadInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleBackgroundUpload}
+                    />
+                    {bg.imageUrl && (
+                      <div className="mt-2 space-y-2">
+                        <div className="w-full h-12 rounded-lg border border-white/[0.08] overflow-hidden bg-white/[0.02]">
+                          <img
+                            src={bg.imageUrl}
+                            alt="Background preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <button
+                          onClick={() => setBg({ ...bg, imageUrl: "", color: "#ffffff", type: "solid" })}
+                          className="w-full px-2 py-1.5 text-xs bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors">
+                          Remove Background Image
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

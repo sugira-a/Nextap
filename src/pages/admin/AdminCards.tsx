@@ -78,6 +78,7 @@ const AdminCards = () => {
 
   const filteredCards = cards.filter(card => {
     const term = search.toLowerCase().trim();
+    if (!term) return true;
     return (
       card.code.toLowerCase().includes(term) ||
       (card.short_code || "").toLowerCase().includes(term) ||
@@ -86,7 +87,6 @@ const AdminCards = () => {
   });
 
   const selectedCompanyName = companies.find(company => company.id === generationCompanyId)?.name || "";
-
   const getCardPath = (card: AdminCard) => card.landing_path || `/card/${card.short_code || card.code}`;
   const getCardUrl = (card: AdminCard) => `${window.location.origin}${getCardPath(card)}`;
 
@@ -200,15 +200,17 @@ const AdminCards = () => {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="max-w-5xl mx-auto space-y-8 py-2"
+      className="max-w-5xl mx-auto space-y-6 py-2 px-3 sm:px-0"
     >
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between border-b border-zinc-200 pb-6 gap-4 sm:gap-0">
+      <div className="flex flex-col gap-4 border-b border-zinc-200 pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-0">
         <div>
-          <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Admin</p>
-          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Cards</h1>
-          <p className="text-sm text-zinc-400 mt-1">{cards.length} total</p>
+          <p className="hidden text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1 sm:block">Admin</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Cards</h1>
+          <p className="hidden text-sm text-zinc-400 mt-1 sm:block">{cards.length} total</p>
+          <p className="text-xs text-zinc-500 mt-1 sm:hidden">{cards.length} cards</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+
+        <div className="hidden items-center gap-2 flex-wrap justify-end sm:flex">
           <input
             type="number"
             min={1}
@@ -223,9 +225,31 @@ const AdminCards = () => {
             Create Cards
           </button>
         </div>
+
+        <details className="sm:hidden group rounded-2xl border border-zinc-200 bg-white p-3">
+          <summary className="list-none flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-zinc-900">
+            <span>Tools & filters</span>
+            <span className="text-xs text-zinc-400 group-open:rotate-180 transition-transform">⌄</span>
+          </summary>
+          <div className="mt-3 space-y-3">
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={generateCount}
+              onChange={e => setGenerateCount(Math.max(1, Math.min(100, Number(e.target.value) || 1)))}
+              className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-zinc-500 transition-colors"
+            />
+            <div className="grid grid-cols-3 gap-2">
+              <button onClick={printCardSheet} className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">Print</button>
+              <button onClick={exportCards} className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">Export</button>
+              <button onClick={() => setGeneratorOpen(true)} className="rounded-xl bg-zinc-900 px-3 py-2 text-xs font-medium text-white hover:bg-zinc-700 transition-colors">Create</button>
+            </div>
+          </div>
+        </details>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+      <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
         <select
           value={companyFilter}
           onChange={e => setCompanyFilter(e.target.value)}
@@ -241,20 +265,68 @@ const AdminCards = () => {
           value={search}
           onChange={e => setSearch(e.target.value)}
           onKeyDown={e => e.key === "Enter" && fetchCards()}
-          className="flex-1 min-w-48 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
+          className="flex-[1.5] min-w-[320px] border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
         />
 
-        <div className="flex gap-1.5 bg-zinc-100 rounded-lg p-1 overflow-x-auto sm:overflow-visible flex-wrap sm:flex-nowrap">
-          {(["all", "claimed", "unclaimed", "assigned", "unassigned", "personal", "active", "suspended", "retired"] as const).map(value => (
-            <button
-              key={value}
-              onClick={() => setFilter(value)}
-              className={`text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors capitalize shrink-0 ${filter === value ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}
-            >
-              {value}
-            </button>
+        <select
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          className="border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-700 outline-none focus:border-zinc-500 transition-colors"
+        >
+          {[
+            ["all", "All status"],
+            ["claimed", "Claimed"],
+            ["unclaimed", "Unclaimed"],
+            ["assigned", "Assigned"],
+            ["unassigned", "Unassigned"],
+            ["personal", "Personal"],
+            ["active", "Active"],
+            ["suspended", "Suspended"],
+            ["retired", "Retired"],
+          ].map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
           ))}
-        </div>
+        </select>
+      </div>
+
+      <div className="sm:hidden grid gap-3 rounded-2xl border border-zinc-200 bg-white p-3">
+        <select
+          value={companyFilter}
+          onChange={e => setCompanyFilter(e.target.value)}
+          className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-700 outline-none focus:border-zinc-500 transition-colors"
+        >
+          <option value="all">All Companies</option>
+          {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
+        </select>
+
+        <input
+          type="text"
+          placeholder="Search cards or users..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && fetchCards()}
+          className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-500 transition-colors"
+        />
+
+        <select
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm text-zinc-700 outline-none focus:border-zinc-500 transition-colors"
+        >
+          {[
+            ["all", "All status"],
+            ["claimed", "Claimed"],
+            ["unclaimed", "Unclaimed"],
+            ["assigned", "Assigned"],
+            ["unassigned", "Unassigned"],
+            ["personal", "Personal"],
+            ["active", "Active"],
+            ["suspended", "Suspended"],
+            ["retired", "Retired"],
+          ].map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
@@ -342,27 +414,16 @@ const AdminCards = () => {
 
             <div className="md:hidden divide-y divide-zinc-100">
               {filteredCards.map(card => (
-                <div key={card.id} className="p-4 hover:bg-zinc-50 transition-colors space-y-3">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <div className="min-w-0 flex-1">
-                      <Link to={`/admin/cards/${card.id}`} className="font-mono text-sm font-semibold text-zinc-900 hover:text-zinc-600 transition-colors block truncate">{card.code}</Link>
-                      <p className="text-xs text-zinc-400 mt-1">{card.created_at ? new Date(card.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "-"}</p>
-                    </div>
-                    <button
-                      onClick={() => setQrCard(card)}
-                      className="text-xs text-zinc-400 hover:text-zinc-700 border border-zinc-200 px-2.5 py-1.5 rounded-lg transition-colors shrink-0"
-                      title="View QR"
-                    >
-                      QR
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div key={card.id} className="p-3.5 hover:bg-zinc-50 transition-colors">
+                  <div className="flex items-center justify-between gap-3">
+                    <Link to={`/admin/cards/${card.id}`} className="min-w-0 flex-1 font-mono text-sm font-semibold text-zinc-900 hover:text-zinc-600 transition-colors truncate">
+                      {card.code}
+                    </Link>
                     <select
                       value={card.status}
                       onChange={e => updateStatus(card.id, e.target.value)}
                       disabled={card.claim_status}
-                      className={`text-xs font-medium px-2 py-1 rounded-full border-0 outline-none cursor-pointer disabled:cursor-default ${
+                      className={`shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full border-0 outline-none cursor-pointer disabled:cursor-default ${
                         card.status === "active" ? "bg-emerald-50 text-emerald-700" :
                         card.status === "suspended" ? "bg-red-50 text-red-600" :
                         card.status === "retired" ? "bg-zinc-200 text-zinc-500" :
@@ -371,24 +432,7 @@ const AdminCards = () => {
                     >
                       {["active", "unassigned", "assigned", "personal", "suspended", "retired"].map(value => <option key={value} value={value}>{value}</option>)}
                     </select>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${card.claim_status ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
-                      {card.claim_status ? "Claimed" : "Free"}
-                    </span>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${card.scope === "personal" || !card.company ? "bg-amber-50 text-amber-700" : "bg-zinc-100 text-zinc-600"}`}>
-                      {card.scope === "personal" || !card.company ? "Personal" : card.company?.name || "Company"}
-                    </span>
                   </div>
-
-                  {card.assigned_user && (
-                    <Link to={`/admin/users/${card.assigned_user.id}`} className="block text-xs hover:text-zinc-600 transition-colors">
-                      <p className="text-zinc-900 font-medium">{card.assigned_user.first_name} {card.assigned_user.last_name}</p>
-                      <p className="text-xs text-zinc-400 truncate">{card.assigned_user.email}</p>
-                    </Link>
-                  )}
-
-                  <button onClick={() => copyText(card.code, card.code)} className="w-full text-xs border border-zinc-200 rounded-lg py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">
-                    {copied === card.code ? "✓ Copied" : "Copy Code"}
-                  </button>
                 </div>
               ))}
             </div>
@@ -397,7 +441,7 @@ const AdminCards = () => {
       </div>
 
       {generatorOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => !generating && setGeneratorOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4" onClick={() => !generating && setGeneratorOpen(false)}>
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -483,7 +527,7 @@ const AdminCards = () => {
       )}
 
       {qrCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => setQrCard(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4" onClick={() => setQrCard(null)}>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -491,7 +535,7 @@ const AdminCards = () => {
             onClick={e => e.stopPropagation()}
           >
             <p className="text-sm font-semibold text-zinc-900 mb-1">Card QR Code</p>
-            <p className="text-xs text-zinc-400 mb-4 font-mono">{qrCard.code}</p>
+            <p className="text-xs text-zinc-400 mb-4 font-mono break-all">{qrCard.code}</p>
             <div className="flex justify-center mb-4">
               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(getCardUrl(qrCard))}`} alt="QR Code" className="rounded-xl border border-zinc-100" />
             </div>

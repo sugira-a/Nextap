@@ -2,7 +2,9 @@ from flask import Blueprint, request, jsonify
 from ..extensions import db
 from ..models import Company, Department, CompanyPolicy, User, Card, Profile
 from ..utils.auth import get_jwt_user, require_role, validate_request_json
-from datetime import datetime
+from ..utils.email import send_welcome_email
+from flask import current_app
+from datetime import datetime, timedelta
 import secrets
 import string
 
@@ -126,9 +128,12 @@ def create_company():
     )
     db.session.add(policy)
 
+    welcome_email_payload = None
+
     if admin_email:
         if not admin_password:
-            admin_password = secrets.token_urlsafe(10)
+            # Generate a stronger temporary password (URL-safe, reasonable length)
+            admin_password = secrets.token_urlsafe(16)
 
         created_admin_user = User(
             email=admin_email,
@@ -156,8 +161,32 @@ def create_company():
         db.session.add(profile)
 
         company.admin_user_id = created_admin_user.id
+        # Mark that the admin must change their temporary password and set expiry
+        created_admin_user.must_change_password = True
+        created_admin_user.temporary_password_expires = datetime.utcnow() + timedelta(hours=24)
+        frontend_url = current_app.config.get('FRONTEND_URL') or 'http://localhost:5173'
+        welcome_email_payload = {
+            'email': created_admin_user.email,
+            'password': admin_password,
+            'company_name': company.name,
+            'login_url': f"{frontend_url.rstrip('/')}/login",
+        }
 
     db.session.commit()
+
+    if welcome_email_payload:
+        try:
+            sent = send_welcome_email(
+                welcome_email_payload['email'],
+                welcome_email_payload['password'],
+                welcome_email_payload['company_name'],
+                welcome_email_payload['login_url'],
+                expires_hours=24,
+            )
+            if not sent:
+                current_app.logger.warning("Welcome email not sent for %s — SMTP may not be configured.", welcome_email_payload['email'])
+        except Exception as e:
+            current_app.logger.exception("Exception while sending welcome email to %s: %s", welcome_email_payload['email'], str(e))
 
     response = {
         'message': 'Company created successfully',

@@ -100,62 +100,65 @@ const AdminCardView = () => {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="max-w-5xl mx-auto space-y-8 py-2"
+      className="max-w-3xl mx-auto space-y-4 py-2 px-3 sm:px-0"
     >
       {/* Header */}
-      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Admin Â· Cards</p>
-          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight font-mono">{data.card.code}</h1>
+      <div className="flex flex-col gap-2 border-b border-zinc-200 pb-3.5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex justify-end sm:hidden">
+          <Link to="/admin/cards" className="text-sm border border-zinc-200 rounded-xl px-4 py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">
+            ← Back
+          </Link>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-400 font-medium mb-1">Admin · Cards</p>
+          <h1 className="text-[1.45rem] sm:text-[1.7rem] font-bold text-zinc-900 tracking-tight font-mono truncate">{data.card.code}</h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${data.card.status === "active" ? "bg-emerald-50 text-emerald-700" : data.card.status === "suspended" ? "bg-red-50 text-red-600" : "bg-zinc-100 text-zinc-500"}`}>
             {data.card.status}
           </span>
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${data.card.claim_status ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
             {data.card.claim_status ? "Claimed" : "Free"}
           </span>
-          <Link to="/admin/cards" className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">← Back</Link>
-          <button onClick={load} className="text-sm border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-500 hover:bg-zinc-50 transition-colors">Refresh</button>
         </div>
       </div>
 
       {/* Stats strip */}
-      <div className="grid grid-cols-4 gap-px bg-zinc-200 rounded-2xl overflow-hidden border border-zinc-200">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {[
           { label: "Total Views", value: data.tracking.total_views },
           { label: "Last 7 Days", value: data.tracking.views_last_7_days },
           { label: "Last 30 Days", value: data.tracking.views_last_30_days },
           { label: "Unique Visitors", value: data.tracking.unique_visitors },
         ].map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07, duration: 0.3 }} className="bg-white px-6 py-7">
-            <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium">{s.label}</p>
-            <p className="text-3xl font-bold text-zinc-900 tracking-tight mt-1">{s.value.toLocaleString()}</p>
+          <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07, duration: 0.3 }} className="rounded-2xl border border-zinc-200 bg-white px-3.5 py-3.5 shadow-sm shadow-zinc-100/70 sm:px-5 sm:py-5">
+            <p className="text-[10px] sm:text-xs uppercase tracking-[0.18em] text-zinc-400 font-medium">{s.label}</p>
+            <p className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight mt-1">{s.value.toLocaleString()}</p>
           </motion.div>
         ))}
       </div>
       {data.tracking.last_view_at && (
-        <p className="text-xs text-zinc-400 -mt-4">Last visit: {new Date(data.tracking.last_view_at).toLocaleString()}</p>
+        <p className="text-xs text-zinc-400 -mt-1">Last visit: {new Date(data.tracking.last_view_at).toLocaleString()}</p>
       )}
 
       {/* Details + QR */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 space-y-5">
+      <div className="grid gap-3.5 lg:grid-cols-[1.65fr_0.95fr] lg:gap-5">
+        <div className="bg-white border border-zinc-200 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-sm shadow-zinc-100/70">
           <p className="text-sm font-semibold text-zinc-900">Public Identity</p>
-          <div className="bg-zinc-50 border border-zinc-100 rounded-xl p-4">
+          <div className="bg-zinc-50 border border-zinc-100 rounded-xl p-3">
             <p className="text-xs text-zinc-400 mb-1">Public URL</p>
-            <p className="text-sm font-mono text-zinc-900 break-all">{publicUrl}</p>
+            <p className="text-xs sm:text-sm font-mono text-zinc-900 break-all">{publicUrl}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button onClick={() => { navigator.clipboard.writeText(publicUrl); toast.success("Link copied"); }} className="text-sm border border-zinc-200 rounded-xl px-4 py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">Copy Link</button>
-            <a href={publicUrl} target="_blank" rel="noreferrer" className="text-sm border border-zinc-200 rounded-xl px-4 py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">Open Public Route ↗</a>
+            <a href={publicUrl} target="_blank" rel="noreferrer" className="text-sm border border-zinc-200 rounded-xl px-4 py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">Open Route ↗</a>
           </div>
-          <div className="grid sm:grid-cols-2 gap-4 pt-2">
-            <div className="bg-zinc-50 rounded-xl p-4">
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="bg-zinc-50 rounded-xl p-3 min-w-0">
               <p className="text-xs text-zinc-400 mb-1">Company</p>
               <p className="text-sm font-medium text-zinc-900">{data.company?.name || "-"}</p>
             </div>
-            <div className="bg-zinc-50 rounded-xl p-4">
+            <div className="bg-zinc-50 rounded-xl p-3 min-w-0">
               <p className="text-xs text-zinc-400 mb-1">Assigned User</p>
               {data.assigned_user ? (
                 <Link to={`/admin/users/${data.assigned_user.id}`} className="hover:text-zinc-600 transition-colors">
@@ -165,29 +168,31 @@ const AdminCardView = () => {
               ) : <p className="text-sm text-zinc-400">Unassigned</p>}
             </div>
           </div>
-          <div className="bg-zinc-50 rounded-xl p-4">
+          <div className="bg-zinc-50 rounded-xl p-3">
             <p className="text-xs text-zinc-400 mb-1">Created</p>
             <p className="text-sm text-zinc-700">{data.card.created_at ? new Date(data.card.created_at).toLocaleString() : "-"}</p>
           </div>
         </div>
 
-        <div className="bg-white border border-zinc-200 rounded-2xl p-6">
-          <p className="text-sm font-semibold text-zinc-900 mb-4">QR Code</p>
-          <img src={qrUrl} alt="Card QR" className="w-full rounded-xl border border-zinc-100" />
+        <div className="bg-white border border-zinc-200 rounded-2xl p-3.5 sm:p-4 shadow-sm shadow-zinc-100/70 lg:sticky lg:top-6 lg:self-start">
+          <p className="text-sm font-semibold text-zinc-900 mb-3">QR Code</p>
+          <div className="flex justify-center">
+            <img src={qrUrl} alt="Card QR" className="w-full max-w-[180px] rounded-xl border border-zinc-100" />
+          </div>
         </div>
       </div>
 
       {/* Recent visits */}
-      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-100">
+      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm shadow-zinc-100/70">
+        <div className="px-4 sm:px-6 py-3 border-b border-zinc-100">
           <p className="text-sm font-semibold text-zinc-900">Recent Visits</p>
         </div>
         {data.recent_events.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-sm text-zinc-400">No visits yet</div>
+          <div className="flex items-center justify-center h-24 text-sm text-zinc-400">No visits yet</div>
         ) : (
           <div className="divide-y divide-zinc-100">
             {data.recent_events.map(event => (
-              <div key={event.id} className="px-6 py-3.5 hover:bg-zinc-50 transition-colors">
+              <div key={event.id} className="px-4 sm:px-6 py-3 hover:bg-zinc-50 transition-colors">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium text-zinc-900 capitalize">{event.event_type}</p>
                   <p className="text-xs text-zinc-400">{event.timestamp ? new Date(event.timestamp).toLocaleString() : "-"}</p>

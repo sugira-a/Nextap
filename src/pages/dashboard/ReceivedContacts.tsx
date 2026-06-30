@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Phone, Mail, MessageCircle, Download, CheckCheck, RefreshCw, FileDown } from "lucide-react";
+import { Download, CheckCheck, RefreshCw, FileDown } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -49,38 +49,50 @@ const downloadVCard = (contact: ReceivedContact) => {
 };
 
 const ReceivedContacts = () => {
-  const [contacts, setContacts] = useState<ReceivedContact[]>([]);
+  // allContacts is the source of truth — fetched once, then filtered client-side
+  const [allContacts, setAllContacts] = useState<ReceivedContact[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true); // only true on first load
+  const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const hasFetched = useRef(false);
 
-  const load = async () => {
-    setLoading(true);
+  const fetchContacts = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
     try {
-      const token = localStorage.getItem("access_token");
+      // Always fetch all contacts — filter client-side to avoid loading flash
       const res = await apiRequest<{ contacts: ReceivedContact[]; unread_count: number }>(
-        filter === "unread" ? "/api/profile/me/contacts?unread=true" : "/api/profile/me/contacts",
-        { headers: { Authorization: `Bearer ${token ?? ""}` } }
+        "/api/profile/me/contacts"
       );
-      setContacts(res.contacts);
-      setUnreadCount(res.unread_count);
-    } catch {
+      setAllContacts(res.contacts || []);
+      setUnreadCount(res.unread_count || 0);
+    } catch (error) {
+      console.error("Failed to load contacts:", error);
       toast.error("Failed to load contacts.", { duration: 2000 });
+      setAllContacts([]);
+      setUnreadCount(0);
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setRefreshing(false);
     }
   };
 
-  useEffect(() => { load(); }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!hasFetched.current) {
+      hasFetched.current = true;
+      fetchContacts();
+    }
+  }, []);
+
+  // Client-side filter — instant, no loading state
+  const contacts = filter === "unread"
+    ? allContacts.filter((c) => !c.is_read)
+    : allContacts;
 
   const markRead = async (id: string) => {
-    const token = localStorage.getItem("access_token");
     try {
-      await apiRequest(`/api/profile/me/contacts/${id}/read`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token ?? ""}` },
-      });
-      setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, is_read: true } : c)));
+      await apiRequest(`/api/profile/me/contacts/${id}/read`, { method: "POST" });
+      setAllContacts((prev) => prev.map((c) => c.id === id ? { ...c, is_read: true } : c));
       setUnreadCount((n) => Math.max(0, n - 1));
     } catch {
       toast.error("Failed to mark as read.", { duration: 2000 });
@@ -88,13 +100,14 @@ const ReceivedContacts = () => {
   };
 
   const markAllRead = async () => {
-    await Promise.all(contacts.filter((c) => !c.is_read).map((c) => markRead(c.id)));
+    const unread = allContacts.filter((c) => !c.is_read);
+    await Promise.all(unread.map((c) => markRead(c.id)));
   };
 
   const exportCSV = () => {
     const rows = [
       ["Name", "Phone", "Email", "Company", "Note", "Date"],
-      ...contacts.map((c) => [
+      ...allContacts.map((c) => [
         c.name, c.phone || "", c.email || "", c.company || "", c.note || "",
         new Date(c.submitted_at).toLocaleDateString(),
       ]),
@@ -118,16 +131,16 @@ const ReceivedContacts = () => {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="max-w-3xl mx-auto space-y-8 py-2"
+      className="max-w-5xl mx-auto space-y-8 py-2"
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-200 pb-5">
+      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
         <div>
           <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Contacts</p>
           <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Received</h1>
         </div>
         <div className="flex items-center gap-2">
-          {contacts.length > 0 && (
+          {allContacts.length > 0 && (
             <button
               onClick={exportCSV}
               title="Export CSV"
@@ -159,23 +172,27 @@ const ReceivedContacts = () => {
                 filter === f ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
               }`}
             >
-              {f === "all" ? `All (${contacts.length})` : `Unread (${unreadCount})`}
+              {f === "all"
+                ? `All (${allContacts.length})`
+                : `Unread (${unreadCount})`}
             </button>
           ))}
         </div>
         <button
-          onClick={load}
-          className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+          onClick={() => fetchContacts(true)}
+          disabled={refreshing}
+          className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-700 transition-colors disabled:opacity-50"
         >
-          <RefreshCw className="w-3 h-3" /> Refresh
+          <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
+          {refreshing ? "Refreshing…" : "Refresh"}
         </button>
       </div>
 
       {/* Content */}
-      {loading ? (
+      {initialLoading ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-28 rounded-2xl bg-zinc-100 animate-pulse" />
+            <div key={i} className="h-20 rounded-2xl bg-zinc-100 animate-pulse" />
           ))}
         </div>
       ) : contacts.length === 0 ? (
@@ -196,26 +213,42 @@ const ReceivedContacts = () => {
               key={contact.id}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className={`rounded-2xl border px-5 py-4 flex items-center gap-4 hover:shadow-sm transition-all ${
-                !contact.is_read ? "bg-emerald-50/50 border-emerald-100" : "bg-white border-zinc-100"
+              transition={{ delay: i * 0.04 }}
+              className={`rounded-2xl border px-5 py-4 flex items-center gap-4 hover:shadow-sm transition-all cursor-pointer ${
+                !contact.is_read
+                  ? "bg-emerald-50/50 border-emerald-100"
+                  : "bg-white border-zinc-100"
               }`}
+              onClick={() => !contact.is_read && markRead(contact.id)}
             >
               {/* Avatar */}
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${avatarColor(contact.name)}`}>
                 {contact.name.charAt(0).toUpperCase()}
               </div>
 
-              {/* Name + company */}
+              {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold text-zinc-900 truncate">{contact.name}</p>
                   {!contact.is_read && (
-                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">New</span>
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
+                      New
+                    </span>
                   )}
                 </div>
                 {contact.company && (
                   <p className="text-xs text-zinc-400 mt-0.5 truncate">{contact.company}</p>
+                )}
+                <div className="flex items-center gap-3 mt-1 flex-wrap">
+                  {contact.phone && (
+                    <span className="text-xs text-zinc-500 truncate">{contact.phone}</span>
+                  )}
+                  {contact.email && (
+                    <span className="text-xs text-zinc-400 truncate">{contact.email}</span>
+                  )}
+                </div>
+                {contact.note && (
+                  <p className="text-xs text-zinc-400 mt-0.5 italic truncate">"{contact.note}"</p>
                 )}
               </div>
 
@@ -224,7 +257,7 @@ const ReceivedContacts = () => {
 
               {/* Download */}
               <button
-                onClick={() => downloadVCard(contact)}
+                onClick={(e) => { e.stopPropagation(); downloadVCard(contact); }}
                 className="shrink-0 w-8 h-8 rounded-xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center transition-colors"
                 title="Download vCard"
               >

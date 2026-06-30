@@ -18,22 +18,22 @@ const Analytics = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const token = localStorage.getItem("access_token");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const userId = getUserIdFromToken();
         if (userId) {
-          const data = await apiRequest<{ analytics: any }>(`/api/analytics/user/${userId}?days=30`, { headers });
+          const data = await apiRequest<{ analytics: any }>(`/api/analytics/user/${userId}?days=30`);
           setAnalytics(data.analytics);
         } else {
-          const me = await apiRequest<{ user: { id: string } }>("/api/auth/me", { headers });
-          const data = await apiRequest<{ analytics: any }>(`/api/analytics/user/${me.user.id}?days=30`, { headers });
+          const me = await apiRequest<{ user: { id: string } }>("/api/auth/me");
+          const data = await apiRequest<{ analytics: any }>(`/api/analytics/user/${me.user.id}?days=30`);
           setAnalytics(data.analytics);
         }
+      } catch (error) {
+        console.error("Failed to load analytics:", error);
       } finally {
         setLoading(false);
       }
     };
-    load().catch(() => setLoading(false));
+    load();
   }, []);
 
   if (loading) {
@@ -130,7 +130,7 @@ const Analytics = () => {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.07, duration: 0.3 }}
-            className="bg-white border border-zinc-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow group"
+            className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all group"
           >
             <div className="flex items-start justify-between mb-4">
               <div className={`w-8 h-8 rounded-xl ${iconBg} flex items-center justify-center`}>
@@ -152,7 +152,7 @@ const Analytics = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="lg:col-span-3 bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm"
+          className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <div className="flex items-start justify-between mb-6">
             <div>
@@ -209,7 +209,7 @@ const Analytics = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="lg:col-span-2 bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm"
+          className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <div className="mb-5">
             <p className="text-sm font-semibold text-zinc-900">Traffic Sources</p>
@@ -240,7 +240,7 @@ const Analytics = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="lg:col-span-2 bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm"
+          className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <div className="mb-5">
             <p className="text-sm font-semibold text-zinc-900">Devices</p>
@@ -272,7 +272,7 @@ const Analytics = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
-          className="lg:col-span-3 bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm"
+          className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <div className="mb-4">
             <p className="text-sm font-semibold text-zinc-900">Recent Referrers</p>

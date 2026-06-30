@@ -1,14 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { ArrowLeft, RefreshCw, Save, UserCircle2, ShieldCheck, BriefcaseBusiness, Link2 } from "lucide-react";
+import {
+  UserCircle2, ArrowLeft, Building2, CreditCard,
+  Clock, Linkedin, Twitter, Instagram, Link2,
+} from "lucide-react";
 
 import { apiRequest } from "@/lib/api";
-import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type CustomerDetails = {
   customer: {
@@ -33,40 +44,46 @@ type CustomerDetails = {
       twitter_url?: string | null;
       instagram_url?: string | null;
     } | null;
-    company?: {
-      id: string;
-      name: string;
-      slug: string;
-    } | null;
-    card?: {
-      code: string;
-      status: string;
-    } | null;
+    company?: { id: string; name: string; slug: string } | null;
+    card?: { code: string; status: string } | null;
   };
 };
 
+const Field = ({ label, value }: { label: string; value?: string | null }) => (
+  <div className="flex flex-col gap-0.5">
+    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+    <p className="text-sm text-foreground">{value || "—"}</p>
+  </div>
+);
+
+const SummaryRow = ({
+  icon: Icon,
+  label,
+  iconColor,
+  children,
+}: {
+  icon: React.ElementType;
+  label: string;
+  iconColor?: string;
+  children: React.ReactNode;
+}) => (
+  <div className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0">
+    <span className="flex items-center gap-2.5 text-sm text-muted-foreground">
+      <span className={`flex items-center justify-center w-6 h-6 rounded-md ${iconColor ?? "bg-muted text-muted-foreground"}`}>
+        <Icon className="w-3.5 h-3.5" />
+      </span>
+      {label}
+    </span>
+    <div className="text-right">{children}</div>
+  </div>
+);
+
 const AdminCustomerView = () => {
   const { userId } = useParams();
-  const navigate = useNavigate();
-
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [data, setData] = useState<CustomerDetails["customer"] | null>(null);
-  const [form, setForm] = useState({
-    first_name: "",
-    last_name: "",
-    status: "active",
-    public_slug: "",
-    title: "",
-    bio: "",
-    phone: "",
-    website: "",
-    location: "",
-    photo_url: "",
-    linkedin_url: "",
-    twitter_url: "",
-    instagram_url: "",
-  });
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
 
   const authHeaders = useMemo(() => {
     const token = localStorage.getItem("access_token");
@@ -75,29 +92,12 @@ const AdminCustomerView = () => {
 
   const load = async () => {
     if (!userId) return;
-
     try {
       setLoading(true);
       const response = await apiRequest<CustomerDetails>(`/api/admin/customers/${userId}`, {
         headers: authHeaders,
       });
-
       setData(response.customer);
-      setForm({
-        first_name: response.customer.user.first_name || "",
-        last_name: response.customer.user.last_name || "",
-        status: response.customer.user.status || "active",
-        public_slug: response.customer.profile?.public_slug || "",
-        title: response.customer.profile?.title || "",
-        bio: response.customer.profile?.bio || "",
-        phone: response.customer.profile?.phone || "",
-        website: response.customer.profile?.website || "",
-        location: response.customer.profile?.location || "",
-        photo_url: response.customer.profile?.photo_url || "",
-        linkedin_url: response.customer.profile?.linkedin_url || "",
-        twitter_url: response.customer.profile?.twitter_url || "",
-        instagram_url: response.customer.profile?.instagram_url || "",
-      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load customer");
     } finally {
@@ -105,214 +105,205 @@ const AdminCustomerView = () => {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, [userId]);
+  useEffect(() => { load(); }, [userId]);
 
-  const save = async () => {
-    if (!userId) return;
-
-    if (!form.first_name.trim() || !form.last_name.trim() || !form.public_slug.trim()) {
-      toast.error("First name, last name, and public slug are required");
-      return;
-    }
-
+  const toggleStatus = async () => {
+    if (!userId || !data) return;
+    const nextStatus = data.user.status === "suspended" ? "active" : "suspended";
     try {
-      setSaving(true);
-      await apiRequest(`/api/admin/customers/${userId}`, {
-        method: "PATCH",
-        headers: authHeaders,
-        body: JSON.stringify({
-          first_name: form.first_name.trim(),
-          last_name: form.last_name.trim(),
-          status: form.status,
-          public_slug: form.public_slug.trim(),
-          title: form.title.trim() || null,
-          bio: form.bio.trim() || null,
-          phone: form.phone.trim() || null,
-          website: form.website.trim() || null,
-          location: form.location.trim() || null,
-          photo_url: form.photo_url.trim() || null,
-          linkedin_url: form.linkedin_url.trim() || null,
-          twitter_url: form.twitter_url.trim() || null,
-          instagram_url: form.instagram_url.trim() || null,
+      setStatusUpdating(true);
+      await toast.promise(
+        apiRequest(`/api/admin/customers/${userId}`, {
+          method: "PATCH",
+          headers: authHeaders,
+          body: JSON.stringify({ status: nextStatus }),
         }),
-      });
-
-      toast.success("Customer profile updated");
+        {
+          loading: `${nextStatus === "suspended" ? "Suspending" : "Reactivating"} customer…`,
+          success: nextStatus === "suspended" ? "Customer suspended successfully" : "Customer reactivated successfully",
+          error: (error) => (error instanceof Error ? error.message : "Unable to update status."),
+        },
+      );
       await load();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update customer");
     } finally {
-      setSaving(false);
+      setStatusUpdating(false);
+      setStatusDialogOpen(false);
     }
   };
 
-  if (loading) {
-    return <Card className="p-8 text-center text-muted-foreground">Loading customer...</Card>;
-  }
+  if (loading) return <p className="text-sm text-muted-foreground py-8 text-center">Loading customer…</p>;
+  if (!data) return <p className="text-sm text-muted-foreground py-8 text-center">Customer not found</p>;
 
-  if (!data) {
-    return <Card className="p-8 text-center text-muted-foreground">Customer not found</Card>;
-  }
+  const fullName = `${data.user.first_name} ${data.user.last_name}`;
+  const initials = `${data.user.first_name?.[0] ?? ""}${data.user.last_name?.[0] ?? ""}`.toUpperCase();
+
+  const socialLinks = [
+    { label: "LinkedIn", icon: Linkedin, value: data.profile?.linkedin_url, color: "text-blue-600" },
+    { label: "Twitter", icon: Twitter, value: data.profile?.twitter_url, color: "text-sky-500" },
+    { label: "Instagram", icon: Instagram, value: data.profile?.instagram_url, color: "text-pink-500" },
+  ];
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      {/* Header Section */}
-      <div className="space-y-4">
-        <Button variant="ghost" size="sm" asChild className="h-8">
-          <Link to="/admin/customers" className="text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Customers
-          </Link>
-        </Button>
-        
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex-1" />
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={load} className="h-9">
-              <RefreshCw className="w-4 h-4 mr-2" /> Refresh
-            </Button>
-            <Button size="sm" onClick={save} disabled={saving} className="h-9">
-              <Save className="w-4 h-4 mr-2" /> {saving ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="mx-auto max-w-6xl space-y-4 px-3 py-2 sm:px-0"
+    >
+
+      {/* Top bar — back button on the right */}
+      <div className="flex items-center justify-end pt-1">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setStatusDialogOpen(true)}
+            disabled={statusUpdating}
+            className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-50 ${
+              data.user.status === "suspended"
+                ? "border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                : "border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+            }`}
+          >
+            {statusUpdating ? "Updating…" : data.user.status === "suspended" ? "Reactivate" : "Suspend"}
+          </button>
+          <Button variant="ghost" size="sm" asChild className="h-8 px-2 text-muted-foreground hover:text-foreground">
+            <Link to="/admin/customers">
+              <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to customers
+            </Link>
+          </Button>
         </div>
       </div>
 
-      {/* Customer Identity Card */}
-      <Card className="p-4 sm:p-6 border-0 shadow-sm">
-        <div className="flex items-start gap-4">
-          {form.photo_url ? (
-            <img src={form.photo_url} alt="Profile" className="h-16 w-16 rounded-full object-cover border border-border shrink-0" />
-          ) : (
-            <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center border border-border shrink-0">
-              <UserCircle2 className="w-8 h-8 text-muted-foreground" />
-            </div>
-          )}
-          <div className="space-y-2 min-w-0 flex-1">
-            <div>
-              <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground line-clamp-2">
-                {data.user.first_name} {data.user.last_name}
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">{data.user.email}</p>
-            </div>
-            <div className="flex flex-wrap gap-2 text-xs items-center">
-              <Badge className="capitalize">{data.user.role}</Badge>
-              <Badge variant="secondary" className="capitalize">{data.user.status}</Badge>
-              <span className="text-muted-foreground flex items-center gap-1 text-xs"><ShieldCheck className="w-3.5 h-3.5" /> /{data.profile?.public_slug || "-"}</span>
-            </div>
+      <AlertDialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {data.user.status === "suspended" ? "Reactivate this customer?" : "Suspend this customer?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {data.user.status === "suspended"
+                ? "This will restore the account and mark it active again."
+                : "This will restrict the account until it is manually reactivated."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={statusUpdating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void toggleStatus();
+              }}
+              className={data.user.status === "suspended" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-amber-600 hover:bg-amber-700"}
+              disabled={statusUpdating}
+            >
+              {data.user.status === "suspended" ? "Reactivate" : "Suspend"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Identity header — dark navy horizontal card */}
+      <div className="rounded-xl bg-[#0f172a] px-4 py-3.5 flex items-center gap-3 sm:px-5 sm:py-4">
+        {data.profile?.photo_url ? (
+          <img
+            src={data.profile.photo_url}
+            alt="Profile"
+            className="h-10 w-10 rounded-full object-cover border border-white/20 shrink-0"
+          />
+        ) : (
+          <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-white font-semibold text-sm shrink-0">
+            {initials || <UserCircle2 className="w-5 h-5 text-white/60" />}
+          </div>
+        )}
+        <h1 className="text-base font-semibold text-white">{fullName}</h1>
+      </div>
+
+      {/* Main grid */}
+      <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
+
+        {/* Profile details */}
+        <div className="rounded-xl border border-border/60 bg-background p-4 space-y-3.5 sm:p-5 sm:space-y-4">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Profile details</p>
+
+          <div className="grid grid-cols-2 gap-x-5 gap-y-3.5 sm:gap-x-6 sm:gap-y-4">
+            <Field label="First name" value={data.user.first_name} />
+            <Field label="Last name" value={data.user.last_name} />
+            <Field label="Title" value={data.profile?.title} />
+            <Field label="Location" value={data.profile?.location} />
+            <Field label="Phone" value={data.profile?.phone} />
+            <Field label="Website" value={data.profile?.website} />
+            <Field label="Status" value={data.user.status} />
+            <Field label="Public slug" value={`/${data.profile?.public_slug || "—"}`} />
+          </div>
+
+          <Separator />
+
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-1.5">Bio</p>
+            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+              {data.profile?.bio || "No bio provided."}
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* Social links */}
+          <div className="grid grid-cols-3 gap-3.5 sm:gap-4">
+            {socialLinks.map(({ label, icon: Icon, value, color }) => (
+              <div key={label} className="flex flex-col gap-1">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                  <Icon className={`w-3.5 h-3.5 ${value ? color : "text-muted-foreground"}`} />
+                  {label}
+                </p>
+                <p className={`text-xs break-all ${value ? "text-foreground" : "text-muted-foreground"}`}>
+                  {value || "—"}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
-      </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[1.6fr_0.9fr]">
-        <Card className="p-6 space-y-5">
-          <div>
-            <h2 className="font-heading text-lg font-semibold text-foreground">Customer Profile</h2>
-            <p className="text-sm text-muted-foreground">Keep this information polished and consistent across the public profile.</p>
+        {/* Sidebar */}
+        <div className="space-y-4">
+
+          {/* Summary card */}
+          <div className="rounded-xl border border-border/60 bg-background p-4 sm:p-5">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-1">Summary</p>
+            <SummaryRow icon={Building2} label="Company" iconColor="bg-blue-50 text-blue-500">
+              <p className="text-sm text-foreground">{data.company?.name || "Not assigned"}</p>
+            </SummaryRow>
+            <SummaryRow icon={CreditCard} label="Card" iconColor="bg-emerald-50 text-emerald-500">
+              <p className="text-sm font-mono text-foreground">{data.card?.code || "—"}</p>
+              {data.card?.status && (
+                <p className="text-[11px] capitalize text-emerald-500">{data.card.status}</p>
+              )}
+            </SummaryRow>
+            <SummaryRow icon={Clock} label="Joined" iconColor="bg-amber-50 text-amber-500">
+              <p className="text-sm text-foreground">
+                {data.user.created_at
+                  ? new Date(data.user.created_at).toLocaleDateString("en-US", {
+                      month: "short", day: "numeric", year: "numeric",
+                    })
+                  : "—"}
+              </p>
+            </SummaryRow>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">First Name</label>
-              <Input value={form.first_name} onChange={(e) => setForm((p) => ({ ...p, first_name: e.target.value }))} />
+          {/* Public profile card */}
+          <div className="rounded-xl border border-border/60 bg-background p-4 space-y-3 sm:p-5">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Public profile</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Shareable link used on cards and QR codes.
+            </p>
+            <div className="rounded-lg bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/30 px-3 py-2.5 space-y-0.5">
+              <p className="text-[10px] uppercase tracking-widest text-violet-400">Profile URL</p>
+              <p className="font-mono text-sm text-violet-700 dark:text-violet-300">
+                /u/{data.profile?.public_slug || "—"}
+              </p>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Last Name</label>
-              <Input value={form.last_name} onChange={(e) => setForm((p) => ({ ...p, last_name: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Status</label>
-              <select value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                <option value="active">active</option>
-                <option value="inactive">inactive</option>
-                <option value="suspended">suspended</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Public Slug</label>
-              <Input value={form.public_slug} onChange={(e) => setForm((p) => ({ ...p, public_slug: e.target.value }))} />
-            </div>
+            <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Link2 className="w-3 h-3" /> Linked from NFC card and QR
+            </p>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Profile Photo URL</label>
-            <Input value={form.photo_url} onChange={(e) => setForm((p) => ({ ...p, photo_url: e.target.value }))} />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Title</label>
-            <Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Bio</label>
-            <textarea value={form.bio} onChange={(e) => setForm((p) => ({ ...p, bio: e.target.value }))} className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Phone</label>
-              <Input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Location</label>
-              <Input value={form.location} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Website</label>
-            <Input value={form.website} onChange={(e) => setForm((p) => ({ ...p, website: e.target.value }))} />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">LinkedIn</label>
-              <Input value={form.linkedin_url} onChange={(e) => setForm((p) => ({ ...p, linkedin_url: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Twitter</label>
-              <Input value={form.twitter_url} onChange={(e) => setForm((p) => ({ ...p, twitter_url: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Instagram</label>
-              <Input value={form.instagram_url} onChange={(e) => setForm((p) => ({ ...p, instagram_url: e.target.value }))} />
-            </div>
-          </div>
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="p-6 space-y-4">
-            <h2 className="font-heading text-lg font-semibold text-foreground">Summary</h2>
-            <div className="space-y-3 text-sm">
-              <div>
-                <p className="text-muted-foreground">Company</p>
-                <p className="font-medium flex items-center gap-2"><BriefcaseBusiness className="w-4 h-4 text-muted-foreground" />{data.company?.name || "Not assigned"}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Card</p>
-                <p className="font-medium">{data.card?.code || "No card"}</p>
-                <p className="text-xs text-muted-foreground capitalize">{data.card?.status || "-"}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Created</p>
-                <p className="font-medium">{data.user.created_at ? new Date(data.user.created_at).toLocaleString() : "-"}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 space-y-4">
-            <h2 className="font-heading text-lg font-semibold text-foreground">Public Profile</h2>
-            <p className="text-sm text-muted-foreground">This is the public-facing profile linked from the card.</p>
-            <div className="rounded-xl border border-border bg-secondary/30 p-4 space-y-2">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Profile Link</div>
-              <div className="font-mono text-sm text-foreground break-all">/u/{data.profile?.public_slug || "-"}</div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Link2 className="w-3.5 h-3.5" /> Clean public route for sharing and QR/NFC.
-              </div>
-            </div>
-          </Card>
         </div>
       </div>
     </motion.div>

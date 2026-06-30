@@ -28,24 +28,24 @@ const CompanyLayout = () => {
   return (
     <div className="flex min-h-screen w-full bg-zinc-50">
       <aside className={cn(
-        "sticky top-0 h-screen border-r border-zinc-200 bg-white flex flex-col transition-all duration-300",
+        "sticky top-0 h-screen border-r border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col transition-all duration-300 shadow-lg",
         collapsed ? "w-14" : "w-56"
       )}>
         {/* Logo */}
-        <div className="flex items-center justify-between px-4 h-14 border-b border-zinc-100 shrink-0">
+        <div className="flex items-center justify-between px-4 h-14 border-b border-slate-700 shrink-0">
           {!collapsed && (
             <Link to="/company" className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-zinc-900 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-md bg-white/20 flex items-center justify-center">
                 <span className="text-white text-[10px] font-black">N</span>
               </div>
-              <span className="font-bold text-sm text-zinc-900">Company</span>
+              <span className="font-bold text-sm text-white">Company</span>
             </Link>
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className={cn("p-1 rounded-md hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors", collapsed && "mx-auto")}
+            className={cn("p-1 rounded-md hover:bg-white/10 text-white/60 hover:text-white transition-colors", collapsed && "mx-auto")}
           >
-            <svg className={cn("w-4 h-4 transition-transform", collapsed && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className={cn("w-4 h-4 transition-transform text-white/60", collapsed && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
@@ -61,8 +61,8 @@ const CompanyLayout = () => {
               className={({ isActive }) => cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                 isActive
-                  ? "bg-zinc-900 text-white font-medium"
-                  : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100"
+                  ? "bg-white/20 text-white font-medium"
+                  : "text-white/70 hover:text-white hover:bg-white/10"
               )}
               title={collapsed ? item.label : undefined}
             >
@@ -73,10 +73,10 @@ const CompanyLayout = () => {
         </nav>
 
         {/* Footer */}
-        <div className="p-2 border-t border-zinc-100 shrink-0">
+        <div className="p-2 border-t border-slate-700 shrink-0">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             title={collapsed ? "Logout" : undefined}
           >
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -87,7 +87,7 @@ const CompanyLayout = () => {
         </div>
       </aside>
 
-      <main className="flex-1 p-6 md:p-8 overflow-auto">
+      <main className="flex-1 p-6 md:p-8 overflow-auto bg-zinc-50">
         <Outlet />
       </main>
     </div>

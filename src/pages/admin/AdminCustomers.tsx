@@ -124,7 +124,7 @@ const AdminCustomers = () => {
       </div>
 
       {/* Table / Cards View */}
-      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all">
         {loading ? (
           <div className="flex items-center justify-center h-40"><div className="w-5 h-5 rounded-full border-2 border-zinc-900 border-t-transparent animate-spin" /></div>
         ) : filtered.length === 0 ? (

@@ -152,14 +152,16 @@ const CompanySettings = () => {
       className="max-w-5xl mx-auto space-y-8 py-2"
     >
       {/* Header */}
-      <div className="border-b border-zinc-200 pb-6">
-        <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Company</p>
-        <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Settings</h1>
-        <p className="text-sm text-zinc-400 mt-1">{company?.name} Â· /{company?.slug}</p>
+      <div className="flex items-end justify-between border-b border-zinc-200 pb-6">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Company</p>
+          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Settings</h1>
+          <p className="text-sm text-zinc-400 mt-1">{company?.name} · /{company?.slug}</p>
+        </div>
       </div>
 
       {/* Company Information */}
-      <section className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-5">
+      <section className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-5 shadow-md hover:shadow-lg transition-shadow">
         <div>
           <p className="text-sm font-semibold text-zinc-900 mb-4">Company Information</p>
           <div className="space-y-4">
@@ -211,7 +213,7 @@ const CompanySettings = () => {
       </section>
 
       {/* Profile Policy */}
-      <section className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-5">
+      <section className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-5 shadow-md hover:shadow-lg transition-shadow">
         <p className="text-sm font-semibold text-zinc-900">Profile Policy</p>
         <div className="rounded-xl border border-zinc-200 p-4 space-y-4">
           <div>

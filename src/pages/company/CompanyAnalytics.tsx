@@ -70,17 +70,17 @@ const CompanyAnalytics = () => {
           <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Analytics</h1>
         </div>
         <div className="flex gap-1.5">
-          {[7, 14, 30].map(d => (
-            <button
-              key={d}
-              onClick={() => setDays(d)}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                days === d ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
-              }`}
-            >
-              {d}d
-            </button>
-          ))}
+            {[7, 14, 30].map(d => (
+              <button
+                key={d}
+                onClick={() => setDays(d)}
+                className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                  days === d ? "bg-[#1e3a5f] text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                }`}
+              >
+                {d}d
+              </button>
+            ))}
         </div>
       </div>
 
@@ -107,7 +107,7 @@ const CompanyAnalytics = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6"
+          className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <p className="text-sm font-semibold text-zinc-900 mb-6">Events "" Last 7 Days</p>
           {eventsByDay.length > 0 ? (
@@ -122,7 +122,7 @@ const CompanyAnalytics = () => {
                       animate={{ height: `${pct}%` }}
                       transition={{ type: "spring", stiffness: 80, damping: 20, delay: 0.3 + idx * 0.05 }}
                       title={`${d.events} events`}
-                      className="flex-1 rounded-t-md bg-zinc-900 hover:bg-zinc-700 transition-colors cursor-default"
+                      className="flex-1 rounded-t-md bg-[#1e3a5f] hover:bg-[#163147] transition-colors cursor-default"
                     />
                   );
                 })}
@@ -143,7 +143,7 @@ const CompanyAnalytics = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6"
+          className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <p className="text-sm font-semibold text-zinc-900 mb-5">Device Types</p>
           <div className="space-y-3">
@@ -160,7 +160,7 @@ const CompanyAnalytics = () => {
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
                       transition={{ type: "spring", stiffness: 60, damping: 25, delay: 0.4 }}
-                      className="h-full bg-zinc-900 rounded-full"
+                      className="h-full bg-[#1e3a5f] rounded-full"
                     />
                   </div>
                 </div>
@@ -178,7 +178,7 @@ const CompanyAnalytics = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white border border-zinc-200 rounded-2xl p-6"
+          className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <p className="text-sm font-semibold text-zinc-900 mb-5">Top Cards</p>
           <div className="space-y-3">

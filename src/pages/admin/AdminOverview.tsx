@@ -28,6 +28,12 @@ type AdminCard = {
   assigned_user_id?: string | null;
 };
 
+const roleColors = {
+  admin: "#1d4ed8",
+  company_admin: "#8b5cf6",
+  employee: "#0f766e",
+} as const;
+
 const AdminOverview = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [logs, setLogs] = useState<AdminAuditLog[]>([]);
@@ -82,23 +88,28 @@ const AdminOverview = () => {
       className="max-w-5xl mx-auto space-y-8 py-2"
     >
       {/* Header */}
-      <div className="border-b border-zinc-200 pb-6">
+      <div className="border-b border-zinc-200 pb-6 flex items-end justify-between gap-4">
         <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Admin</p>
         <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Overview</h1>
+        <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+          Live snapshot
+        </span>
       </div>
 
       {/* Stats strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-200 rounded-2xl overflow-hidden border border-zinc-200">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {metricCards.map((m, i) => (
           <motion.div
             key={m.label}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: i * 0.07 }}
-            className="bg-white px-6 py-7 hover:bg-zinc-50 transition-colors"
+            className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white px-6 py-7 shadow-lg shadow-slate-200/60 transition-all hover:-translate-y-0.5 hover:shadow-xl"
           >
+            <div className="absolute inset-x-0 top-0 h-1 bg-zinc-100" />
             <p className="text-xs text-zinc-400 uppercase tracking-widest font-medium">{m.label}</p>
-            <p className="text-4xl font-bold text-zinc-900 tracking-tight mt-1">{m.value}</p>
+            <p className="text-4xl font-bold tracking-tight mt-1 text-zinc-900">{m.value}</p>
             <p className="text-xs text-zinc-500 mt-0.5">{m.sub}</p>
           </motion.div>
         ))}
@@ -111,7 +122,7 @@ const AdminOverview = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="sm:col-span-1 lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6"
+          className="sm:col-span-1 lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <p className="text-sm font-semibold text-zinc-900 mb-5">System Roles</p>
           <div className="space-y-3">
@@ -129,7 +140,8 @@ const AdminOverview = () => {
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
                       transition={{ type: "spring", stiffness: 60, damping: 25, delay: 0.35 }}
-                      className="h-full bg-zinc-900 rounded-full"
+                      className="h-full rounded-full"
+                      style={{ background: roleColors[role as keyof typeof roleColors] ?? "#1e3a5f" }}
                     />
                   </div>
                 </div>
@@ -143,7 +155,7 @@ const AdminOverview = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="sm:col-span-1 lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6"
+          className="sm:col-span-1 lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <p className="text-sm font-semibold text-zinc-900 mb-4">Recent Activity</p>
           {logs.length > 0 ? (
@@ -153,11 +165,11 @@ const AdminOverview = () => {
                   <div className="min-w-0">
                     <p className="text-sm text-zinc-900 font-medium truncate">
                       <span className="font-semibold">{item.action}</span>{" "}
-                      <span className="text-zinc-400">{item.target_type}</span>
+                      <span className="text-blue-600">{item.target_type}</span>
                     </p>
                     <p className="text-xs text-zinc-400 mt-0.5 truncate">{item.actor?.email || "System"}</p>
                   </div>
-                  <span className="text-xs text-zinc-300 ml-4 whitespace-nowrap tabular-nums">
+                  <span className="text-xs text-violet-400 ml-4 whitespace-nowrap tabular-nums">
                     {item.timestamp ? new Date(item.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "-"}
                   </span>
                 </div>
@@ -174,7 +186,7 @@ const AdminOverview = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-white border border-zinc-200 rounded-2xl overflow-hidden"
+        className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-shadow"
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
           <p className="text-sm font-semibold text-zinc-900">Recent Cards</p>
@@ -192,7 +204,7 @@ const AdminOverview = () => {
               <span className="font-mono text-sm font-medium text-zinc-900">{card.code}</span>
               <div className="flex items-center gap-4">
                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                  card.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"
+                    card.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"
                 }`}>{card.status}</span>
                 <span className="text-xs text-zinc-300 group-hover:text-zinc-500 transition-colors">
                   {card.assigned_user_id ? "Assigned" : "Unassigned"}
@@ -218,7 +230,15 @@ const AdminOverview = () => {
             to={link.path}
             className="bg-white border border-zinc-200 rounded-xl px-4 py-4 flex items-center justify-between hover:bg-zinc-50 hover:border-zinc-400 transition-colors group"
           >
-            <span className="text-sm font-medium text-zinc-700 group-hover:text-zinc-900">{link.label}</span>
+            <span className="flex items-center gap-2 text-sm font-medium text-zinc-700 group-hover:text-zinc-900">
+              <span className={`w-2.5 h-2.5 rounded-full ${
+                link.label === "Manage Users" ? "bg-zinc-400" :
+                link.label === "All Cards" ? "bg-amber-500" :
+                link.label === "Companies" ? "bg-violet-500" :
+                "bg-emerald-500"
+              }`} />
+              {link.label}
+            </span>
             <span className="text-zinc-300 group-hover:text-zinc-600 transition-colors">→</span>
           </Link>
         ))}

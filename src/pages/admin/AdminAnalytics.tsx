@@ -128,7 +128,7 @@ const AdminAnalytics = () => {
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between border-b border-zinc-200 pb-6 gap-4 sm:gap-0">
-        <div>
+        <div className="hidden sm:block">
           <p className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-1">Admin</p>
           <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Analytics</h1>
         </div>
@@ -148,14 +148,26 @@ const AdminAnalytics = () => {
               {overview.company_options.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
-          <button onClick={downloadSnapshotCsv} className="text-xs border border-zinc-200 rounded-xl px-4 py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">Export CSV</button>
+          <button onClick={downloadSnapshotCsv} className="hidden sm:inline-flex text-xs border border-zinc-200 rounded-xl px-4 py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">Export CSV</button>
         </div>
       </div>
 
-      {/* Stats strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-200 rounded-2xl overflow-hidden border border-zinc-200">
+      {/* Small-screen: export button aligned with cards */}
+      <div className="flex items-center justify-end sm:hidden">
+        <button onClick={downloadSnapshotCsv} className="text-xs border border-zinc-200 rounded-xl px-4 py-2 text-zinc-500 hover:bg-zinc-50 transition-colors">Export CSV</button>
+      </div>
+
+      {/* Stats strip - separated cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statItems.map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.07 }} className="bg-white px-6 py-7 hover:bg-zinc-50 transition-colors">
+          <motion.div
+            key={s.label}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: i * 0.07 }}
+            className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white px-6 py-7 shadow-lg shadow-slate-200/60 transition-all hover:-translate-y-0.5 hover:shadow-xl"
+          >
+            <div className="absolute inset-x-0 top-0 h-1 bg-zinc-100" />
             <p className="text-xs text-zinc-400 uppercase tracking-widest font-medium">{s.label}</p>
             <p className="text-4xl font-bold text-zinc-900 tracking-tight mt-1">{s.value}</p>
             <p className="text-xs text-zinc-400 mt-0.5">{s.delta}</p>
@@ -165,13 +177,13 @@ const AdminAnalytics = () => {
 
       {/* Weekly chart + Status */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="sm:col-span-1 lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="sm:col-span-1 lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow">
           <p className="text-sm font-semibold text-zinc-900 mb-6">Events — Last 7 Days</p>
           {eventsByDay.length > 0 ? (
             <>
               <div className="flex items-end gap-2 h-36">
                 {eventsByDay.map((d, idx) => (
-                  <motion.div key={d.date} initial={{ height: 0 }} animate={{ height: `${Math.max((d.events / maxBar) * 100, 5)}%` }} transition={{ type: "spring", stiffness: 80, damping: 20, delay: 0.3 + idx * 0.05 }} title={`${d.events} events`} className="flex-1 rounded-t-md bg-zinc-900 hover:bg-zinc-700 transition-colors cursor-default" />
+                  <motion.div key={d.date} initial={{ height: 0 }} animate={{ height: `${Math.max((d.events / maxBar) * 100, 5)}%` }} transition={{ type: "spring", stiffness: 80, damping: 20, delay: 0.3 + idx * 0.05 }} title={`${d.events} events`} className="flex-1 rounded-t-md bg-zinc-900 hover:bg-zinc-800 transition-colors cursor-default" />
                 ))}
               </div>
               <div className="flex gap-2 mt-3">
@@ -181,7 +193,7 @@ const AdminAnalytics = () => {
           ) : <div className="h-36 flex items-center justify-center text-sm text-zinc-400">No data</div>}
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="sm:col-span-1 lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="sm:col-span-1 lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow">
           <p className="text-sm font-semibold text-zinc-900 mb-5">Status Breakdown</p>
           <div className="space-y-3">
             {Object.entries(overview.status_breakdown).map(([label, count]) => {
@@ -205,7 +217,7 @@ const AdminAnalytics = () => {
 
       {/* Top Companies */}
       {overview.top_companies.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white border border-zinc-200 rounded-2xl p-6">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow">
           <p className="text-sm font-semibold text-zinc-900 mb-5">Top Companies by Events</p>
           <div className="space-y-3">
             {overview.top_companies.slice(0, 5).map(c => {

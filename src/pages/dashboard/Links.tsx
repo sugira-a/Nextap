@@ -19,20 +19,22 @@ const Links = () => {
 
   useEffect(() => {
     const load = async () => {
-      const token = localStorage.getItem("access_token");
-      const response = await apiRequest<{ profile: any }>("/api/auth/me", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      try {
+        const response = await apiRequest<{ profile: any }>("/api/auth/me");
 
-      setLinks([
-        { id: "website", platform: "Website", url: response.profile?.website || "" },
-        { id: "linkedin", platform: "LinkedIn", url: response.profile?.linkedin_url || "" },
-        { id: "twitter", platform: "Twitter", url: response.profile?.twitter_url || "" },
-        { id: "instagram", platform: "Instagram", url: response.profile?.instagram_url || "" },
-      ]);
+        setLinks([
+          { id: "website", platform: "Website", url: response.profile?.website || "" },
+          { id: "linkedin", platform: "LinkedIn", url: response.profile?.linkedin_url || "" },
+          { id: "twitter", platform: "Twitter", url: response.profile?.twitter_url || "" },
+          { id: "instagram", platform: "Instagram", url: response.profile?.instagram_url || "" },
+        ]);
+      } catch (error) {
+        console.error("Failed to load links:", error);
+        toast.error("Failed to load links", { duration: 2000 });
+      }
     };
 
-    load().catch(() => toast.error("Failed to load links", { duration: 2000 }));
+    load();
   }, []);
 
   const addLink = () => setLinks([...links, { id: Date.now().toString(), platform: "", url: "" }]);
@@ -43,14 +45,13 @@ const Links = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const token = localStorage.getItem("access_token");
       const map = Object.fromEntries(links.map((link) => [link.platform.toLowerCase(), link.url]));
+      const me = await apiRequest<{ profile: { public_slug: string } }>("/api/auth/me");
 
       await apiRequest("/api/profile/me/update", {
         method: "PUT",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: JSON.stringify({
-          public_slug: (await apiRequest<{ profile: { public_slug: string } }>("/api/auth/me", { headers: token ? { Authorization: `Bearer ${token}` } : {} })).profile.public_slug,
+          public_slug: me.profile.public_slug,
           website: map.website || "",
           linkedin_url: map.linkedin || "",
           twitter_url: map.twitter || "",
@@ -59,7 +60,8 @@ const Links = () => {
       });
 
       toast.success("Links saved", { duration: 2000 });
-    } catch {
+    } catch (error) {
+      console.error("Failed to save links:", error);
       toast.error("Failed to save links", { duration: 2000 });
     } finally {
       setSaving(false);

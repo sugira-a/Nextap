@@ -312,6 +312,31 @@ def list_all_cards():
     
     pagination = query.order_by(Card.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
+    # Get analytics counts and last views in bulk to avoid N+1 queries
+    card_ids = [card.id for card in pagination.items]
+    analytics_data = {}
+    if card_ids:
+        from sqlalchemy import func, and_
+        # Get view counts
+        view_counts = db.session.query(
+            Card.id,
+            func.count(AnalyticsEvent.id).label('view_count')
+        ).outerjoin(AnalyticsEvent).filter(Card.id.in_(card_ids)).group_by(Card.id).all()
+        
+        # Get last view timestamps
+        last_views = db.session.query(
+            AnalyticsEvent.card_id,
+            func.max(AnalyticsEvent.timestamp).label('last_timestamp')
+        ).filter(AnalyticsEvent.card_id.in_(card_ids)).group_by(AnalyticsEvent.card_id).all()
+        
+        for card_id, view_count in view_counts:
+            analytics_data[card_id] = {'views': view_count, 'last_view': None}
+        
+        for card_id, timestamp in last_views:
+            if card_id not in analytics_data:
+                analytics_data[card_id] = {'views': 0, 'last_view': None}
+            analytics_data[card_id]['last_view'] = timestamp.isoformat() if timestamp else None
+
     cards = []
     for card in pagination.items:
         card_data = card.to_dict()
@@ -327,9 +352,11 @@ def list_all_cards():
             'slug': card.company.slug,
         } if card.company else None
         card_data['scope'] = 'company' if card.company_id else 'personal'
+        
+        analytics = analytics_data.get(card.id, {'views': 0, 'last_view': None})
         card_data['tracking'] = {
-            'total_views': len(card.analytics_events),
-            'last_view_at': card.analytics_events[-1].timestamp.isoformat() if card.analytics_events else None,
+            'total_views': analytics['views'],
+            'last_view_at': analytics['last_view'],
         }
         cards.append(card_data)
     
@@ -346,17 +373,31 @@ def list_all_cards():
 @require_role('admin')
 def get_card_details(card_id):
     """Get detailed card identity, ownership, and tracking data."""
+    from sqlalchemy import func, and_
+    
     card = Card.query.get(card_id)
     if not card:
         return {'error': 'Card not found'}, 404
 
-    events = sorted(card.analytics_events, key=lambda event: event.timestamp or datetime.min, reverse=True)
-    recent_events = events[:25]
-
     last_7_days = datetime.utcnow() - timedelta(days=7)
     last_30_days = datetime.utcnow() - timedelta(days=30)
 
-    unique_ips = {event.ip_address for event in events if event.ip_address}
+    # Use database queries for aggregations instead of loading all events
+    total_views = db.session.query(func.count(AnalyticsEvent.id)).filter_by(card_id=card_id).scalar() or 0
+    views_7d = db.session.query(func.count(AnalyticsEvent.id)).filter(
+        and_(AnalyticsEvent.card_id == card_id, AnalyticsEvent.timestamp >= last_7_days)
+    ).scalar() or 0
+    views_30d = db.session.query(func.count(AnalyticsEvent.id)).filter(
+        and_(AnalyticsEvent.card_id == card_id, AnalyticsEvent.timestamp >= last_30_days)
+    ).scalar() or 0
+    unique_visitors = db.session.query(func.count(func.distinct(AnalyticsEvent.ip_address))).filter_by(card_id=card_id).scalar() or 0
+
+    # Get last view timestamp
+    last_event = AnalyticsEvent.query.filter_by(card_id=card_id).order_by(AnalyticsEvent.timestamp.desc()).first()
+    last_view_at = last_event.timestamp.isoformat() if last_event and last_event.timestamp else None
+
+    # Get recent events only (limit 25)
+    recent_events = AnalyticsEvent.query.filter_by(card_id=card_id).order_by(AnalyticsEvent.timestamp.desc()).limit(25).all()
 
     return {
         'card': card.to_dict(),
@@ -375,11 +416,11 @@ def get_card_details(card_id):
             'profile_slug': card.assigned_user.profile.public_slug if card.assigned_user and card.assigned_user.profile else None,
         } if card.assigned_user else None,
         'tracking': {
-            'total_views': len(events),
-            'views_last_7_days': len([event for event in events if event.timestamp and event.timestamp >= last_7_days]),
-            'views_last_30_days': len([event for event in events if event.timestamp and event.timestamp >= last_30_days]),
-            'unique_visitors': len(unique_ips),
-            'last_view_at': events[0].timestamp.isoformat() if events else None,
+            'total_views': total_views,
+            'views_last_7_days': views_7d,
+            'views_last_30_days': views_30d,
+            'unique_visitors': unique_visitors,
+            'last_view_at': last_view_at,
         },
         'recent_events': [
             {

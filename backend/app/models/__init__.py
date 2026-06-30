@@ -37,6 +37,8 @@ class User(db.Model):
     
     # Status: active, inactive, suspended
     status = db.Column(db.String(50), default='active', nullable=False)
+    # Whether the user must change their password on next login (temporary password issued)
+    must_change_password = db.Column(db.Boolean, default=False)
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -46,6 +48,8 @@ class User(db.Model):
     # Password reset
     reset_token = db.Column(db.String(128), unique=True)
     reset_token_expires = db.Column(db.DateTime)
+    # Temporary password expiry and force-change flag
+    temporary_password_expires = db.Column(db.DateTime)
     
     # Relationships
     profile = db.relationship('Profile', backref='user', uselist=False, cascade='all, delete-orphan')
@@ -74,6 +78,8 @@ class User(db.Model):
             'company_id': self.company_id,
             'department_id': self.department_id,
             'status': self.status,
+            'must_change_password': bool(self.must_change_password),
+            'temporary_password_expires': self.temporary_password_expires.isoformat() if self.temporary_password_expires else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -90,7 +96,7 @@ class Profile(db.Model):
     public_slug = db.Column(db.String(128), unique=True, nullable=False, index=True)
     
     # Profile content
-    photo_url = db.Column(db.String(512))
+    photo_url = db.Column(db.Text)  # Changed from String(512) to Text to support base64 images
     title = db.Column(db.String(255))
     bio = db.Column(db.Text)
     phone = db.Column(db.String(20))

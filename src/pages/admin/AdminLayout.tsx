@@ -4,15 +4,15 @@ import { useEffect, useState } from "react";
 import { apiRequest, clearAuthTokens } from "@/lib/api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ArrowRightFromLine, CircleArrowOutUpRight, LayoutGrid, Gauge, Building2, CreditCard, UsersRound, UserCircle2, LogOut } from "lucide-react";
 
 const navItems = [
-  { label: "Overview", path: "/admin" },
-  { label: "Analytics", path: "/admin/analytics" },
-  { label: "Companies", path: "/admin/companies" },
-  { label: "Cards", path: "/admin/cards" },
-  { label: "Users", path: "/admin/users" },
-  { label: "Customers", path: "/admin/customers" },
+  { label: "Overview", path: "/admin", icon: LayoutGrid },
+  { label: "Analytics", path: "/admin/analytics", icon: Gauge },
+  { label: "Companies", path: "/admin/companies", icon: Building2 },
+  { label: "Cards", path: "/admin/cards", icon: CreditCard },
+  { label: "Users", path: "/admin/users", icon: UsersRound },
+  { label: "Customers", path: "/admin/customers", icon: UserCircle2 },
 ];
 
 const AdminLayout = () => {
@@ -50,24 +50,24 @@ const AdminLayout = () => {
     <div className="flex min-h-screen w-full bg-zinc-50">
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "hidden md:flex sticky top-0 h-screen border-r border-zinc-200 bg-white flex-col transition-all duration-300",
-        collapsed ? "w-14" : "w-56"
+        "hidden md:flex sticky top-0 h-screen border-r border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 flex-col transition-all duration-300 shadow-lg",
+        collapsed ? "w-16" : "w-56"
       )}>
         {/* Logo */}
-        <div className="flex items-center justify-between px-4 h-14 border-b border-zinc-100 shrink-0">
+        <div className="flex items-center justify-between px-4 h-14 border-b border-slate-700 shrink-0">
           {!collapsed && (
             <Link to="/admin" className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-zinc-900 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-md bg-white/20 flex items-center justify-center">
                 <span className="text-white text-[10px] font-black">N</span>
               </div>
-              <span className="font-bold text-sm text-zinc-900">Admin</span>
+              <span className="font-bold text-sm text-white">Admin</span>
             </Link>
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className={cn("p-1 rounded-md hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors", collapsed && "mx-auto")}
+            className={cn("p-1 rounded-md hover:bg-white/10 text-white/60 hover:text-white transition-colors", collapsed && "mx-auto")}
           >
-            <svg className={cn("w-4 h-4 transition-transform", collapsed && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className={cn("w-4 h-4 transition-transform text-white/60", collapsed && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
@@ -77,19 +77,21 @@ const AdminLayout = () => {
         <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
           {navItems.map(item => {
             const active = location.pathname === item.path;
+            const Icon = item.icon;
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                  "flex items-center gap-3 rounded-lg text-sm transition-colors",
+                  collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2",
                   active
-                    ? "bg-zinc-900 text-white font-medium"
-                    : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100"
+                    ? "bg-white/20 text-white font-medium"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
                 )}
                 title={collapsed ? item.label : undefined}
               >
-                <span className={cn("shrink-0 w-1.5 h-1.5 rounded-full", active ? "bg-white" : "bg-zinc-300")} />
+                <Icon className={cn("shrink-0 w-5 h-5", active ? "text-white" : "text-white/70")} />
                 {!collapsed && <span>{item.label}</span>}
               </Link>
             );
@@ -97,15 +99,13 @@ const AdminLayout = () => {
         </nav>
 
         {/* Footer */}
-        <div className="p-2 border-t border-zinc-100 shrink-0">
+        <div className="p-2 border-t border-slate-700 shrink-0">
           <button
             onClick={handleExitAdmin}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+            className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:text-white hover:bg-white/10 transition-colors", collapsed && "justify-center px-2")}
             title={collapsed ? "Exit Admin" : undefined}
           >
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" />
-            </svg>
+            <CircleArrowOutUpRight className="w-5 h-5 shrink-0" />
             {!collapsed && <span>Exit Admin</span>}
           </button>
         </div>
@@ -160,11 +160,11 @@ const AdminLayout = () => {
                         className={cn(
                           "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                           active
-                            ? "bg-zinc-900 text-white font-medium"
+                            ? "bg-[#1e3a5f] text-white font-medium"
                             : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100"
                         )}
                       >
-                        <span className={cn("shrink-0 w-1.5 h-1.5 rounded-full", active ? "bg-white" : "bg-zinc-300")} />
+                        <span className={cn("shrink-0 w-1.5 h-1.5 rounded-full", active ? "bg-[#1e3a5f]" : "bg-zinc-300")} />
                         <span>{item.label}</span>
                       </Link>
                     );
@@ -175,9 +175,7 @@ const AdminLayout = () => {
                     onClick={handleExitAdmin}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
                   >
-                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" />
-                    </svg>
+                    <CircleArrowOutUpRight className="w-4 h-4 shrink-0" />
                     <span>Exit Admin</span>
                   </button>
                 </div>
@@ -187,7 +185,7 @@ const AdminLayout = () => {
         </AnimatePresence>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto p-6 md:p-8 min-h-0">
+        <main className="flex-1 overflow-auto p-6 md:p-8 min-h-0 bg-zinc-50\">
           <Outlet />
         </main>
       </div>

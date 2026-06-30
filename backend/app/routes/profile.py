@@ -1,10 +1,24 @@
 from flask import Blueprint, request, jsonify
+from functools import wraps
 from ..extensions import db
 from ..models import Profile, User, AnalyticsEvent, CompanyPolicy, SharedContact
 from ..utils.auth import get_jwt_user, validate_request_json
 from datetime import datetime
 
 bp = Blueprint('profile', __name__, url_prefix='/api/profile')
+
+# Simple cache for public profiles (invalidated on update)
+_profile_cache = {}
+
+def _cache_key(slug: str, suffix: str = '') -> str:
+    """Generate a cache key for a profile."""
+    return f"profile:{slug}{':' + suffix if suffix else ''}"
+
+def _invalidate_profile_cache(slug: str):
+    """Invalidate all cache entries for a profile."""
+    for key in list(_profile_cache.keys()):
+        if key.startswith(f"profile:{slug}"):
+            del _profile_cache[key]
 
 
 def _generate_profile_slug(user: User) -> str:
@@ -60,7 +74,6 @@ def get_my_profile():
 
 
 @bp.route('/me/update', methods=['PUT'])
-@validate_request_json('public_slug')
 def update_my_profile():
     """Update current user's profile"""
     user = get_jwt_user()
@@ -69,7 +82,11 @@ def update_my_profile():
     
     profile = _ensure_profile_for_user(user)
     
-    data = request.get_json()
+    data = request.get_json() or {}
+    
+    # Auto-generate public_slug if not provided
+    if not data.get('public_slug'):
+        data['public_slug'] = _generate_profile_slug(user)
     
     # Check company policy if user is part of company
     if user.company_id:
@@ -107,12 +124,17 @@ def update_my_profile():
             'show_exchange_contact'
         }
     
-    # Check for slug uniqueness
+    # Handle public_slug - auto-generate if taken or invalid
     if 'public_slug' in data and data['public_slug'] != profile.public_slug:
-        existing = Profile.query.filter_by(public_slug=data['public_slug']).first()
+        requested_slug = data['public_slug']
+        existing = Profile.query.filter_by(public_slug=requested_slug).first()
         if existing:
-            return {'error': 'Public slug already taken'}, 400
+            # Slug is taken, generate a unique one instead
+            data['public_slug'] = _generate_profile_slug(user)
         profile.public_slug = data['public_slug']
+    elif not profile.public_slug:
+        # If profile has no slug yet, generate one
+        profile.public_slug = _generate_profile_slug(user)
     
     # Update allowed fields
     for field in allowed_fields:
@@ -141,6 +163,9 @@ def update_my_profile():
     
     profile.updated_at = datetime.utcnow()
     db.session.commit()
+    
+    # Invalidate cache after update
+    _invalidate_profile_cache(profile.public_slug)
     
     return {
         'message': 'Profile updated successfully',
@@ -196,7 +221,18 @@ def mark_contact_as_read(contact_id):
 @bp.route('/<slug>', methods=['GET'])
 def get_public_profile(slug):
     """Get public profile by slug"""
-    profile = Profile.query.filter_by(public_slug=slug).first()
+    from sqlalchemy.orm import joinedload
+    
+    # Check cache first
+    cache_key = _cache_key(slug)
+    if cache_key in _profile_cache:
+        return _profile_cache[cache_key], 200
+    
+    # Eager load user and company to avoid N+1 queries
+    profile = Profile.query.options(
+        joinedload(Profile.user).joinedload(User.company),
+        joinedload(Profile.user).joinedload(User.cards)
+    ).filter_by(public_slug=slug).first()
     
     if not profile:
         return {'error': 'Profile not found'}, 404
@@ -224,28 +260,50 @@ def get_public_profile(slug):
     for field in ('photo_url', 'background_image_url', 'body_background_image_url'):
         profile_data[field] = _strip_base64(profile_data.get(field))
 
-    return {
+    response = {
         'profile': profile_data,
         'user': {
             'id': profile.user.id,
             'first_name': profile.user.first_name,
             'last_name': profile.user.last_name,
             'role': profile.user.role
-        } if profile.user else None
-    }, 200
+        } if profile.user else None,
+        'company': {
+            'id': profile.user.company.id,
+            'name': profile.user.company.name,
+            'slug': profile.user.company.slug,
+            'logo_url': profile.user.company.logo_url,
+            'primary_color': profile.user.company.primary_color,
+            'accent_color': profile.user.company.accent_color,
+        } if profile.user and profile.user.company else None
+    }
+    
+    # Cache for 5 minutes
+    _profile_cache[cache_key] = response
+    return response, 200
 
 
 @bp.route('/<slug>/images', methods=['GET'])
 def get_public_profile_images(slug):
     """Lazy-load heavy image fields (base64) separately so the main profile loads fast."""
+    # Check cache first
+    cache_key = _cache_key(slug, 'images')
+    if cache_key in _profile_cache:
+        return _profile_cache[cache_key], 200
+    
     profile = Profile.query.filter_by(public_slug=slug).first()
     if not profile:
         return {'error': 'Profile not found'}, 404
-    return {
+    
+    response = {
         'photo_url': profile.photo_url or None,
         'background_image_url': profile.background_image_url or None,
         'body_background_image_url': profile.body_background_image_url or None,
-    }, 200
+    }
+    
+    # Cache for 5 minutes
+    _profile_cache[cache_key] = response
+    return response, 200
 
 
 @bp.route('/<profile_id>/approve', methods=['POST'])

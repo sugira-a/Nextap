@@ -10,6 +10,8 @@ bp = Blueprint('analytics', __name__, url_prefix='/api/analytics')
 @bp.route('/company/<company_id>', methods=['GET'])
 def get_company_analytics(company_id):
     """Get company-wide analytics"""
+    from sqlalchemy import func, and_
+    
     user = get_jwt_user()
     
     if not user or (user.role != 'admin' and user.company_id != company_id):
@@ -23,59 +25,70 @@ def get_company_analytics(company_id):
     days = request.args.get('days', 30, type=int)
     start_date = datetime.utcnow() - timedelta(days=days)
     
-    # Get events
-    events = AnalyticsEvent.query.filter(
+    # Use database queries for aggregations
+    base_filter = and_(
         AnalyticsEvent.company_id == company_id,
         AnalyticsEvent.timestamp >= start_date
-    ).all()
+    )
     
-    # Aggregate data
-    taps = len([e for e in events if e.event_type == 'tap'])
-    views = len([e for e in events if e.event_type == 'profile_view'])
-    unique_devices = set([e.device_type for e in events if e.device_type])
-
+    total_events = db.session.query(func.count(AnalyticsEvent.id)).filter(base_filter).scalar() or 0
+    taps = db.session.query(func.count(AnalyticsEvent.id)).filter(
+        and_(base_filter, AnalyticsEvent.event_type == 'tap')
+    ).scalar() or 0
+    profile_views = db.session.query(func.count(AnalyticsEvent.id)).filter(
+        and_(base_filter, AnalyticsEvent.event_type == 'profile_view')
+    ).scalar() or 0
+    
+    # Device breakdown
     device_breakdown = {}
-    for event in events:
-        device = event.device_type or 'unknown'
-        if device not in device_breakdown:
-            device_breakdown[device] = 0
-        device_breakdown[device] += 1
+    device_stats = db.session.query(
+        AnalyticsEvent.device_type,
+        func.count(AnalyticsEvent.id)
+    ).filter(base_filter).group_by(AnalyticsEvent.device_type).all()
     
-    # Event by day
+    for device, count in device_stats:
+        device_breakdown[device or 'unknown'] = count
+    
+    unique_devices = list(device_breakdown.keys())
+    
+    # Events by day
     events_by_day = {}
-    for event in events:
-        day = event.timestamp.date().isoformat()
-        if day not in events_by_day:
-            events_by_day[day] = 0
-        events_by_day[day] += 1
+    day_stats = db.session.query(
+        func.date(AnalyticsEvent.timestamp).label('day'),
+        func.count(AnalyticsEvent.id)
+    ).filter(base_filter).group_by(func.date(AnalyticsEvent.timestamp)).all()
+    
+    for day, count in day_stats:
+        events_by_day[day.isoformat() if hasattr(day, 'isoformat') else str(day)] = count
     
     # Top cards
-    card_hits = {}
-    for event in events:
-        if event.card_id:
-            if event.card_id not in card_hits:
-                card_hits[event.card_id] = 0
-            card_hits[event.card_id] += 1
+    top_card_stats = db.session.query(
+        AnalyticsEvent.card_id,
+        func.count(AnalyticsEvent.id).label('hits')
+    ).filter(base_filter).group_by(AnalyticsEvent.card_id).order_by(
+        func.count(AnalyticsEvent.id).desc()
+    ).limit(10).all()
     
-    top_cards = sorted(card_hits.items(), key=lambda x: x[1], reverse=True)[:10]
+    top_cards = []
+    for card_id, hits in top_card_stats:
+        card = Card.query.get(card_id) if card_id else None
+        top_cards.append({
+            'card_id': card_id,
+            'hits': hits,
+            'code': card.code if card else None,
+            'card': card.to_dict() if card else None
+        })
     
     return {
         'analytics': {
             'period_days': days,
-            'total_events': len(events),
+            'total_events': total_events,
             'taps': taps,
-            'profile_views': views,
-            'unique_devices': list(unique_devices),
+            'profile_views': profile_views,
+            'unique_devices': unique_devices,
             'device_breakdown': device_breakdown,
             'events_by_day': events_by_day,
-            'top_cards': [
-                {
-                    'card_id': card_id,
-                    'hits': hits,
-                    'card': Card.query.get(card_id).to_dict() if card_id else None
-                }
-                for card_id, hits in top_cards
-            ]
+            'top_cards': top_cards
         }
     }, 200
 
@@ -83,6 +96,8 @@ def get_company_analytics(company_id):
 @bp.route('/user/<user_id>', methods=['GET'])
 def get_user_analytics(user_id):
     """Get user profile analytics"""
+    from sqlalchemy import func, and_
+    
     current_user = get_jwt_user()
     
     if not current_user or (current_user.id != user_id and current_user.role != 'admin'):
@@ -96,46 +111,61 @@ def get_user_analytics(user_id):
     days = request.args.get('days', 30, type=int)
     start_date = datetime.utcnow() - timedelta(days=days)
     
-    # Get events
-    events = AnalyticsEvent.query.filter(
+    base_filter = and_(
         AnalyticsEvent.user_id == user_id,
         AnalyticsEvent.timestamp >= start_date
-    ).all()
+    )
     
-    # Aggregate data
-    views = len([e for e in events if e.event_type == 'profile_view'])
-    taps = len([e for e in events if e.event_type == 'tap'])
+    # Use database queries for aggregations
+    total_events = db.session.query(func.count(AnalyticsEvent.id)).filter(base_filter).scalar() or 0
+    profile_views = db.session.query(func.count(AnalyticsEvent.id)).filter(
+        and_(base_filter, AnalyticsEvent.event_type == 'profile_view')
+    ).scalar() or 0
+    taps = db.session.query(func.count(AnalyticsEvent.id)).filter(
+        and_(base_filter, AnalyticsEvent.event_type == 'tap')
+    ).scalar() or 0
     
     # Device breakdown
     device_breakdown = {}
-    for event in events:
-        device = event.device_type or 'unknown'
-        if device not in device_breakdown:
-            device_breakdown[device] = 0
-        device_breakdown[device] += 1
+    device_stats = db.session.query(
+        AnalyticsEvent.device_type,
+        func.count(AnalyticsEvent.id)
+    ).filter(base_filter).group_by(AnalyticsEvent.device_type).all()
+    
+    for device, count in device_stats:
+        device_breakdown[device or 'unknown'] = count
     
     # Browser breakdown
     browser_breakdown = {}
-    for event in events:
-        browser = event.browser or 'unknown'
-        if browser not in browser_breakdown:
-            browser_breakdown[browser] = 0
-        browser_breakdown[browser] += 1
+    browser_stats = db.session.query(
+        AnalyticsEvent.browser,
+        func.count(AnalyticsEvent.id)
+    ).filter(base_filter).group_by(AnalyticsEvent.browser).all()
+    
+    for browser, count in browser_stats:
+        browser_breakdown[browser or 'unknown'] = count
     
     # Views by day
     views_by_day = {}
-    for event in events:
-        day = event.timestamp.date().isoformat()
-        if day not in views_by_day:
-            views_by_day[day] = 0
-        views_by_day[day] += 1
+    day_stats = db.session.query(
+        func.date(AnalyticsEvent.timestamp).label('day'),
+        func.count(AnalyticsEvent.id)
+    ).filter(base_filter).group_by(func.date(AnalyticsEvent.timestamp)).all()
+    
+    for day, count in day_stats:
+        views_by_day[day.isoformat() if hasattr(day, 'isoformat') else str(day)] = count
+    
+    # Recent events (only query 10)
+    recent_events_list = AnalyticsEvent.query.filter(base_filter).order_by(
+        AnalyticsEvent.timestamp.desc()
+    ).limit(10).all()
     
     return {
         'analytics': {
             'user_id': user_id,
             'period_days': days,
-            'total_events': len(events),
-            'profile_views': views,
+            'total_events': total_events,
+            'profile_views': profile_views,
             'taps': taps,
             'device_breakdown': device_breakdown,
             'browser_breakdown': browser_breakdown,
@@ -148,7 +178,7 @@ def get_user_analytics(user_id):
                     'referrer': event.referrer,
                     'timestamp': event.timestamp.isoformat() if event.timestamp else None,
                 }
-                for event in sorted(events, key=lambda item: item.timestamp, reverse=True)[:10]
+                for event in recent_events_list
             ]
         }
     }, 200
@@ -157,6 +187,8 @@ def get_user_analytics(user_id):
 @bp.route('/card/<card_id>', methods=['GET'])
 def get_card_analytics(card_id):
     """Get card-specific analytics"""
+    from sqlalchemy import func, and_
+    
     user = get_jwt_user()
     
     card = Card.query.get(card_id)
@@ -170,46 +202,53 @@ def get_card_analytics(card_id):
     days = request.args.get('days', 30, type=int)
     start_date = datetime.utcnow() - timedelta(days=days)
     
-    # Get events
-    events = AnalyticsEvent.query.filter(
+    base_filter = and_(
         AnalyticsEvent.card_id == card_id,
         AnalyticsEvent.timestamp >= start_date
-    ).all()
+    )
     
-    # Aggregate data
-    hits = len(events)
+    # Use database queries for aggregations
+    total_hits = db.session.query(func.count(AnalyticsEvent.id)).filter(base_filter).scalar() or 0
     
     # Device breakdown
     device_breakdown = {}
-    for event in events:
-        device = event.device_type or 'unknown'
-        if device not in device_breakdown:
-            device_breakdown[device] = 0
-        device_breakdown[device] += 1
+    device_stats = db.session.query(
+        AnalyticsEvent.device_type,
+        func.count(AnalyticsEvent.id)
+    ).filter(base_filter).group_by(AnalyticsEvent.device_type).all()
     
-    # Location/referrer
+    for device, count in device_stats:
+        device_breakdown[device or 'unknown'] = count
+    
+    # Referrers
     referrers = {}
-    for event in events:
-        referrer = event.referrer or 'direct'
-        if referrer not in referrers:
-            referrers[referrer] = 0
-        referrers[referrer] += 1
+    referrer_stats = db.session.query(
+        AnalyticsEvent.referrer,
+        func.count(AnalyticsEvent.id)
+    ).filter(base_filter).group_by(AnalyticsEvent.referrer).order_by(
+        func.count(AnalyticsEvent.id).desc()
+    ).limit(10).all()
+    
+    for referrer, count in referrer_stats:
+        referrers[referrer or 'direct'] = count
     
     # Hits by day
     hits_by_day = {}
-    for event in events:
-        day = event.timestamp.date().isoformat()
-        if day not in hits_by_day:
-            hits_by_day[day] = 0
-        hits_by_day[day] += 1
+    day_stats = db.session.query(
+        func.date(AnalyticsEvent.timestamp).label('day'),
+        func.count(AnalyticsEvent.id)
+    ).filter(base_filter).group_by(func.date(AnalyticsEvent.timestamp)).all()
+    
+    for day, count in day_stats:
+        hits_by_day[day.isoformat() if hasattr(day, 'isoformat') else str(day)] = count
     
     return {
         'analytics': {
             'card_id': card_id,
             'period_days': days,
-            'total_hits': hits,
+            'total_hits': total_hits,
             'device_breakdown': device_breakdown,
-            'top_referrers': dict(sorted(referrers.items(), key=lambda x: x[1], reverse=True)[:10]),
+            'top_referrers': referrers,
             'hits_by_day': hits_by_day
         }
     }, 200

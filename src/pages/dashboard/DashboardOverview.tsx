@@ -32,31 +32,30 @@ const DashboardOverview = () => {
   const [analytics, setAnalytics] = useState<UserAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const token = localStorage.getItem("access_token");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const userId = getUserIdFromToken();
-        if (userId) {
-          const [me, analyticsResponse] = await Promise.all([
-            apiRequest<{ user: { id: string }; profile: { completion_status?: number } | null }>("/api/auth/me", { headers }),
-            apiRequest<{ analytics: UserAnalytics }>(`/api/analytics/user/${userId}?days=30`, { headers }),
-          ]);
-          setCompletion(me.profile?.completion_status || 0);
-          setAnalytics(analyticsResponse.analytics);
-        } else {
-          const me = await apiRequest<{ user: { id: string }; profile: { completion_status?: number } | null }>("/api/auth/me", { headers });
-          setCompletion(me.profile?.completion_status || 0);
-          const analyticsResponse = await apiRequest<{ analytics: UserAnalytics }>(`/api/analytics/user/${me.user.id}?days=30`, { headers });
-          setAnalytics(analyticsResponse.analytics);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    load().catch(() => setLoading(false));
-  }, []);
+useEffect(() => {
+  const load = async () => {
+    try {
+      // Always fetch /me first — this is the source of truth for the user ID.
+      // Don't rely on getUserIdFromToken() since the JWT sub claim format can vary.
+      const me = await apiRequest<{
+        user: { id: string };
+        profile: { completion_status?: number } | null;
+      }>("/api/auth/me");
+
+      setCompletion(me.profile?.completion_status ?? 0);
+
+      const analyticsResponse = await apiRequest<{ analytics: UserAnalytics }>(
+        `/api/analytics/user/${me.user.id}?days=30`
+      );
+      setAnalytics(analyticsResponse.analytics);
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  load();
+}, []);
 
   if (loading) {
     return (
@@ -88,11 +87,11 @@ const DashboardOverview = () => {
       <div className="flex items-end justify-between pb-5 border-b border-zinc-100">
         <div>
           <p className="text-[11px] uppercase tracking-widest text-zinc-400 font-semibold mb-1">Overview</p>
-          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-[#1e3a5f] tracking-tight">Dashboard</h1>
         </div>
         <Link
           to="/dashboard/profile"
-          className="text-sm font-semibold text-zinc-700 border border-zinc-200 bg-white px-4 py-2 rounded-xl hover:bg-zinc-50 hover:border-zinc-300 transition-colors shadow-sm"
+          className="text-sm font-semibold text-white bg-[#1e3a5f] px-4 py-2 rounded-xl hover:bg-[#163147] transition-colors shadow-sm border border-transparent"
         >
           Edit Profile
         </Link>
@@ -106,10 +105,10 @@ const DashboardOverview = () => {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.07 }}
-            className="bg-white border border-zinc-200 rounded-2xl px-5 py-6 flex flex-col gap-1 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+            className="bg-white border border-zinc-200 rounded-2xl px-5 py-6 flex flex-col gap-1 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all"
           >
             <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-semibold">{label}</p>
-            <p className="text-3xl font-bold text-zinc-900 tracking-tight mt-2 tabular-nums">{value}</p>
+            <p className="text-3xl font-bold text-[#1e3a5f] tracking-tight mt-2 tabular-nums">{value}</p>
             <p className="text-xs text-zinc-400 mt-0.5">{sub}</p>
           </motion.div>
         ))}
@@ -123,7 +122,7 @@ const DashboardOverview = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm"
+          className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <div className="flex items-start justify-between mb-6">
             <div>
@@ -179,7 +178,7 @@ const DashboardOverview = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 flex flex-col shadow-sm"
+          className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 flex flex-col shadow-md hover:shadow-lg transition-shadow"
         >
           <p className="text-sm font-semibold text-zinc-900 mb-3">Quick Actions</p>
           <div className="flex flex-col gap-0.5 flex-1">
@@ -211,7 +210,7 @@ const DashboardOverview = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm"
+          className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <p className="text-sm font-semibold text-zinc-900 mb-0.5">Profile Completion</p>
           <p className="text-xs text-zinc-400 mb-5">Fill in all fields to reach 100%</p>
@@ -241,7 +240,7 @@ const DashboardOverview = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
-          className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm"
+          className="lg:col-span-3 bg-white border border-zinc-200 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow"
         >
           <p className="text-sm font-semibold text-zinc-900 mb-1">Recent Activity</p>
           <p className="text-xs text-zinc-400 mb-4">Latest interactions on your profile</p>

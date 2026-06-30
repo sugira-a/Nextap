@@ -100,7 +100,7 @@ const AdminUsers = () => {
 
       {/* Invite form */}
       {showInvite && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-zinc-200 rounded-2xl p-4 sm:p-6 space-y-4">
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-zinc-200 rounded-2xl p-4 sm:p-6 space-y-4 shadow-md hover:shadow-lg transition-shadow">
           <p className="text-sm font-semibold text-zinc-900">Invite User</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -157,7 +157,7 @@ const AdminUsers = () => {
       </div>
 
       {/* Table / Cards View */}
-      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-shadow">
         {loading ? (
           <div className="flex items-center justify-center h-40"><div className="w-5 h-5 rounded-full border-2 border-zinc-900 border-t-transparent animate-spin" /></div>
         ) : filteredUsers.length === 0 ? (
