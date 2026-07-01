@@ -78,16 +78,24 @@ def _should_run_db_bootstrap(app) -> bool:
 
 
 def seed_default_admin():
-    """Create a default admin user for local development if none exists."""
+    """Create a default admin user if none exists, or force-reset password via env var."""
     from .models import User, Profile
 
     admin_email = os.getenv('ADMIN_EMAIL', 'admin@nextap.local')
     admin_password = os.getenv('ADMIN_PASSWORD', 'Admin123!')
     admin_first_name = os.getenv('ADMIN_FIRST_NAME', 'System')
     admin_last_name = os.getenv('ADMIN_LAST_NAME', 'Admin')
+    force_password = os.getenv('FORCE_ADMIN_PASSWORD', '').strip()
 
     existing_admin = User.query.filter_by(role='admin').first()
     if existing_admin:
+        # If FORCE_ADMIN_PASSWORD is set, reset the admin's password and email
+        if force_password and len(force_password) >= 8:
+            existing_admin.set_password(force_password)
+            if os.getenv('ADMIN_EMAIL'):
+                existing_admin.email = admin_email
+            db.session.commit()
+            print(f"[INFO] Admin password force-reset for: {existing_admin.email}")
         return
 
     admin_user = User(
@@ -338,10 +346,9 @@ def ensure_card_design_schema():
 
 def register_blueprints(app):
     """Register all route blueprints"""
-    from .routes import auth, profile, card, company, employee, invitation, department, analytics, admin, design, shortlink, seed_admin
+    from .routes import auth, profile, card, company, employee, invitation, department, analytics, admin, design, shortlink
     
     # Register API blueprints
-    app.register_blueprint(seed_admin.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(profile.bp)
     app.register_blueprint(card.bp)
