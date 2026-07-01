@@ -77,14 +77,13 @@ def _should_run_db_bootstrap(app) -> bool:
 def seed_default_admin():
     """Create a default admin user for local development if none exists."""
     from .models import User, Profile
-    from sqlalchemy import text
 
     admin_email = os.getenv('ADMIN_EMAIL', 'admin@nextap.local')
     admin_password = os.getenv('ADMIN_PASSWORD', 'Admin123!')
     admin_first_name = os.getenv('ADMIN_FIRST_NAME', 'System')
     admin_last_name = os.getenv('ADMIN_LAST_NAME', 'Admin')
 
-    existing_admin = db.session.execute(text("SELECT id FROM user WHERE role = :role LIMIT 1"), {'role': 'admin'}).fetchone()
+    existing_admin = User.query.filter_by(role='admin').first()
     if existing_admin:
         return
 
@@ -118,19 +117,16 @@ def seed_default_admin():
 
 def seed_default_company():
     """Create a starter company for the default admin on fresh SQLite databases."""
-    from .models import Company, CompanyPolicy
-    from sqlalchemy import text
+    from .models import User, Company, CompanyPolicy
 
-    res = db.session.execute(text("SELECT id, company_id FROM user WHERE role = :role LIMIT 1"), {'role': 'admin'}).fetchone()
-    if not res:
+    admin_user = User.query.filter_by(role='admin').first()
+    if not admin_user:
         return
 
-    admin_user_id, admin_company_id = res[0], res[1]
-
-    existing_company = db.session.execute(text("SELECT id FROM company WHERE admin_user_id = :id LIMIT 1"), {'id': admin_user_id}).fetchone()
+    existing_company = Company.query.filter_by(admin_user_id=admin_user.id).first()
     if existing_company:
-        if not admin_company_id:
-            db.session.execute(text("UPDATE user SET company_id = :cid WHERE id = :id"), {'cid': existing_company[0], 'id': admin_user_id})
+        if not admin_user.company_id:
+            admin_user.company_id = existing_company.id
             db.session.commit()
         return
 
@@ -149,7 +145,7 @@ def seed_default_company():
         accent_color=os.getenv('DEFAULT_COMPANY_ACCENT_COLOR', '#22C55E'),
         plan='starter',
         status='active',
-        admin_user_id=admin_user_id,
+        admin_user_id=admin_user.id,
     )
     db.session.add(company)
     db.session.flush()
@@ -165,7 +161,7 @@ def seed_default_company():
     db.session.add(policy)
 
     db.session.commit()
-    db.session.execute(text("UPDATE user SET company_id = :cid WHERE id = :id"), {'cid': company.id, 'id': admin_user_id})
+    admin_user.company_id = company.id
     db.session.commit()
 
     print(f"[INFO] Seeded default company: {company.name} ({company.slug})")
