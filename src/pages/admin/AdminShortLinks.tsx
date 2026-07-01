@@ -22,7 +22,7 @@ type ShortLink = {
 type FormState = { original_url: string; alias: string; title: string };
 const EMPTY_FORM: FormState = { original_url: "", alias: "", title: "" };
 
-const BASE_URL = window.location.origin;
+const BASE_URL = (import.meta.env.VITE_SHORT_LINK_BASE_URL || window.location.origin).replace(/\/$/, "");
 
 const shortUrl = (alias: string) => `${BASE_URL}/s/${alias}`;
 
