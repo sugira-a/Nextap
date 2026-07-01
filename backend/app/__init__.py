@@ -39,9 +39,15 @@ def create_app(config_name='development'):
     
     # Register CLI commands
     register_cli_commands(app)
-    
+
+    # Register blueprints first so all models are imported into SQLAlchemy
+    # metadata before db.create_all() is called
+    register_blueprints(app)
+
     with app.app_context():
         if _should_run_db_bootstrap(app):
+            # Import all models to ensure they are registered with metadata
+            from . import models  # noqa: F401
             db.create_all()
             if _is_sqlite_database():
                 ensure_user_schema()
@@ -52,9 +58,6 @@ def create_app(config_name='development'):
                 ensure_card_design_schema()
             seed_default_admin()
             seed_default_company()
-    
-    # Register blueprints AFTER bootstrap so route imports don't run queries
-    register_blueprints(app)
     
     return app
 
