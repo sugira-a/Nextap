@@ -170,7 +170,7 @@ export function isNotFoundApiError(error: unknown): boolean {
     return false;
   }
 
-  const message = error.message.toLowerCase();
+  const message = (error.message || "").toLowerCase();
   return (
     message.includes("not found") ||
     message.includes("method not allowed") ||
