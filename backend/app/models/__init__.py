@@ -545,3 +545,33 @@ class CardDesign(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
+
+
+class ShortLink(db.Model):
+    """Branded short URL / link shortener managed by admins"""
+    __tablename__ = 'short_link'
+
+    id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
+    alias = db.Column(db.String(128), unique=True, nullable=False, index=True)
+    original_url = db.Column(db.Text, nullable=False)
+    title = db.Column(db.String(255))
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    click_count = db.Column(db.Integer, default=0, nullable=False)
+    last_visited_at = db.Column(db.DateTime)
+    created_by = db.Column(db.String(36), db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'alias': self.alias,
+            'original_url': self.original_url,
+            'title': self.title,
+            'is_active': self.is_active,
+            'click_count': self.click_count,
+            'last_visited_at': self.last_visited_at.isoformat() if self.last_visited_at else None,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }

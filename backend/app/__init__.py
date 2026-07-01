@@ -332,13 +332,13 @@ def ensure_card_design_schema():
     """Create card_design table for existing SQLite databases."""
     if not _is_sqlite_database():
         return
-    from .models import CardDesign  # noqa: F401 — ensures table is registered
+    from .models import CardDesign, ShortLink  # noqa: F401 — ensures table is registered
     db.create_all()
 
 
 def register_blueprints(app):
     """Register all route blueprints"""
-    from .routes import auth, profile, card, company, employee, invitation, department, analytics, admin, design
+    from .routes import auth, profile, card, company, employee, invitation, department, analytics, admin, design, shortlink
     
     # Register API blueprints
     app.register_blueprint(auth.bp)
@@ -351,6 +351,8 @@ def register_blueprints(app):
     app.register_blueprint(analytics.bp)
     app.register_blueprint(admin.bp)
     app.register_blueprint(design.bp)
+    app.register_blueprint(shortlink.bp)
+    app.register_blueprint(shortlink.redirect_bp)
 
 
 def register_error_handlers(app):

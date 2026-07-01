@@ -4,15 +4,16 @@ import { useEffect, useState } from "react";
 import { apiRequest, clearAuthTokens } from "@/lib/api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ArrowRightFromLine, CircleArrowOutUpRight, LayoutGrid, Gauge, Building2, CreditCard, UsersRound, UserCircle2, LogOut } from "lucide-react";
+import { Menu, X, ArrowRightFromLine, CircleArrowOutUpRight, LayoutGrid, Gauge, Building2, CreditCard, UsersRound, UserCircle2, LogOut, Link2 } from "lucide-react";
 
 const navItems = [
-  { label: "Overview", path: "/admin", icon: LayoutGrid },
-  { label: "Analytics", path: "/admin/analytics", icon: Gauge },
-  { label: "Companies", path: "/admin/companies", icon: Building2 },
-  { label: "Cards", path: "/admin/cards", icon: CreditCard },
-  { label: "Users", path: "/admin/users", icon: UsersRound },
-  { label: "Customers", path: "/admin/customers", icon: UserCircle2 },
+  { label: "Overview",    path: "/admin",             icon: LayoutGrid },
+  { label: "Analytics",  path: "/admin/analytics",    icon: Gauge },
+  { label: "Companies",  path: "/admin/companies",    icon: Building2 },
+  { label: "Cards",      path: "/admin/cards",        icon: CreditCard },
+  { label: "Users",      path: "/admin/users",        icon: UsersRound },
+  { label: "Customers",  path: "/admin/customers",    icon: UserCircle2 },
+  { label: "Short Links",path: "/admin/short-links",  icon: Link2 },
 ];
 
 const AdminLayout = () => {

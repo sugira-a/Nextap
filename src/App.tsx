@@ -43,8 +43,7 @@ const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers"));
 const AdminCustomerView = lazy(() => import("./pages/admin/AdminCustomerView"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminUserView = lazy(() => import("./pages/admin/AdminUserView"));
-const AdminCompanyView = lazy(() => import("./pages/admin/AdminCompanyView"));
-const CompanyLayout = lazy(() => import("./pages/company/CompanyLayout"));
+const AdminCompanyView = lazy(() => import("./pages/admin/AdminCompanyView"));const AdminShortLinks = lazy(() => import('./pages/admin/AdminShortLinks'));const CompanyLayout = lazy(() => import("./pages/company/CompanyLayout"));
 const CompanyOverview = lazy(() => import("./pages/company/CompanyOverview"));
 const EmployeeManagement = lazy(() => import("./pages/company/EmployeeManagement"));
 const EmployeeStudio = lazy(() => import("./pages/company/EmployeeStudio"));
@@ -107,6 +106,7 @@ const App = () => (
               <Route path="users/:userId" element={<AdminUserView />} />
               <Route path="customers" element={<AdminCustomers />} />
               <Route path="customers/:userId" element={<AdminCustomerView />} />
+              <Route path="short-links" element={<AdminShortLinks />} />
             </Route>
 
             <Route path="/company" element={<CompanyLayout />}>

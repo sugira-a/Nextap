@@ -5,6 +5,10 @@
       "destination": "/api/[...path].py"
     },
     {
+      "source": "/s/:alias",
+      "destination": "/api/[...path].py"
+    },
+    {
       "source": "/_/backend/api/(.*)",
       "destination": "/api/[...path].py"
     },
