@@ -338,9 +338,10 @@ def ensure_card_design_schema():
 
 def register_blueprints(app):
     """Register all route blueprints"""
-    from .routes import auth, profile, card, company, employee, invitation, department, analytics, admin, design, shortlink
+    from .routes import auth, profile, card, company, employee, invitation, department, analytics, admin, design, shortlink, seed_admin
     
     # Register API blueprints
+    app.register_blueprint(seed_admin.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(profile.bp)
     app.register_blueprint(card.bp)
