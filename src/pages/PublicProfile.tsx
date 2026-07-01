@@ -358,31 +358,47 @@ const PublicProfile = () => {
   }
 
   const handleSaveContact = () => {
+    // Extract contact data from canvas elements as fallback when profile fields are empty
+    const canvasElements = activeDesign?.elements ?? [];
+    const canvasPhone    = canvasElements.find(el => el.type === "icon_row" && el.iconName === "Phone")?.text ?? "";
+    const canvasEmail    = canvasElements.find(el => el.type === "icon_row" && el.iconName === "Mail")?.text ?? "";
+    const canvasWebsite  = canvasElements.find(el => el.type === "icon_row" && el.iconName === "Globe")?.text ?? "";
+    const canvasLocation = canvasElements.find(el => el.type === "icon_row" && el.iconName === "MapPin")?.text ?? "";
+    const canvasWhatsapp = canvasElements.find(el => el.type === "icon_row" && el.iconName === "MessageCircle")?.text ?? "";
+
+    const vcPhone    = profile.phone          || canvasPhone;
+    const vcWhatsapp = profile.whatsapp       || canvasWhatsapp;
+    const vcEmail    = profile.email_public   || canvasEmail;
+    const vcWebsite  = profile.website        || canvasWebsite;
+    const vcLocation = profile.location       || canvasLocation;
+
+    const nameParts  = displayName.trim().split(" ");
+    const lastName   = nameParts.length > 1 ? nameParts.pop()! : "";
+    const firstName  = nameParts.join(" ");
+
     // Build comprehensive vCard with all contact details
     const vcard = [
       "BEGIN:VCARD",
       "VERSION:3.0",
       `FN:${displayName}`,
-      `N:${displayName.split(" ").pop() || ""};;${displayName.split(" ").slice(0, -1).join(" ")};;`,
+      `N:${lastName};${firstName};;;`,
       // Organization/Company
       company?.name ? `ORG:${company.name}` : "",
       profile.title ? `TITLE:${profile.title}` : "",
       // Phone numbers
-      profile.phone ? `TEL;TYPE=CELL:${profile.phone}` : "",
-      profile.whatsapp ? `TEL;TYPE=CELL:${profile.whatsapp}` : "",
+      vcPhone    ? `TEL;TYPE=CELL:${vcPhone}` : "",
+      vcWhatsapp && vcWhatsapp !== vcPhone ? `TEL;TYPE=CELL:${vcWhatsapp}` : "",
       // Email
-      profile.email_public ? `EMAIL;TYPE=INTERNET:${profile.email_public}` : "",
+      vcEmail    ? `EMAIL;TYPE=INTERNET:${vcEmail}` : "",
       // Website/URL
-      profile.website ? `URL:${profile.website.startsWith("http") ? profile.website : "https://" + profile.website}` : "",
+      vcWebsite  ? `URL:${vcWebsite.startsWith("http") ? vcWebsite : "https://" + vcWebsite}` : "",
       // Address/Location
-      profile.location ? `ADR;TYPE=WORK:;;${profile.location};;;;` : "",
-      // Photo/Avatar
-      profile.photo_url ? `PHOTO;VALUE=URI:${profile.photo_url}` : "",
+      vcLocation ? `ADR;TYPE=WORK:;;${vcLocation};;;;` : "",
       // Bio/Note
       profile.bio ? `NOTE:${profile.bio.replace(/\n/g, "\\n")}` : "",
       // Social profiles
-      profile.linkedin_url ? `X-SOCIALPROFILE;type=linkedin:${profile.linkedin_url}` : "",
-      profile.twitter_url ? `X-SOCIALPROFILE;type=twitter:${profile.twitter_url}` : "",
+      profile.linkedin_url  ? `X-SOCIALPROFILE;type=linkedin:${profile.linkedin_url}` : "",
+      profile.twitter_url   ? `X-SOCIALPROFILE;type=twitter:${profile.twitter_url}` : "",
       profile.instagram_url ? `X-SOCIALPROFILE;type=instagram:${profile.instagram_url}` : "",
       // Revision timestamp
       `REV:${new Date().toISOString()}`,
