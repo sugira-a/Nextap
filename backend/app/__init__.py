@@ -64,20 +64,14 @@ def _is_sqlite_database() -> bool:
 
 
 def _should_run_db_bootstrap(app) -> bool:
-    """Run dev-time DB bootstrap only when explicitly enabled or in debug/testing."""
+    """Run DB bootstrap on startup to ensure tables exist in all environments."""
     env_override = os.getenv('RUN_DB_BOOTSTRAP')
     if env_override is not None:
         return env_override.strip().lower() in {'1', 'true', 'yes', 'on'}
 
-    # Production should not auto-bootstrap/seeding unless explicitly enabled.
-    flask_env = os.getenv('FLASK_ENV', '').strip().lower()
-    if flask_env == 'production':
-        return False
-
-    if app.config.get('SQLALCHEMY_DATABASE_URI', '').startswith('sqlite:'):
-        return True
-
-    return bool(app.debug or app.testing)
+    # Always bootstrap — db.create_all() is safe to call repeatedly (no-op if
+    # tables already exist) and ensures production PostgreSQL gets its schema.
+    return True
 
 
 def seed_default_admin():
